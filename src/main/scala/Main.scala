@@ -36,6 +36,15 @@ class Game {
     if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
       glfwSetWindowShouldClose(window, true)
   })
+  glfwSetJoystickCallback((jid: Int, event: Int) => {
+    if (event == GLFW_CONNECTED) {
+      gamestate.input1.gamepadId = jid
+    } else if (event == GLFW_DISCONNECTED) {
+      if (jid == gamestate.input1.gamepadId) {
+        gamestate.input1.gamepadId = -1
+      }
+    }
+  })
   Using.resource(stackPush()) { stack =>
     val pwidth = stack.mallocInt(1)
     val pheight = stack.mallocInt(1)
@@ -59,6 +68,7 @@ class Game {
   GL.createCapabilities()
 
   val gamestate = new GameState()
+  val timer = new SyncTimer()
   def loop(): Unit = {
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
@@ -71,6 +81,7 @@ class Game {
       glfwSwapBuffers(window)
       glfwPollEvents()
 
+      timer.sync(60)
     }
   }
 

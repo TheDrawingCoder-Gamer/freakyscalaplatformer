@@ -23,7 +23,12 @@ class Input(val player: Byte) {
   var axisYTurned: Boolean = false
   var inputLockHeld: Boolean = false
   var gamepadId: Int = -1
-
+    
+  def consumeJumpPress(): Boolean = {
+    val res = inputJumpPressed > 0
+    inputJumpPressed = 0
+    res
+  }
   def update(): Unit = Using.resource(stackPush()) { stack =>
     val prevX: Byte = axisXValue
     val prevY: Byte = axisYValue

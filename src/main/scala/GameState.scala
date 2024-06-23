@@ -30,6 +30,17 @@ trait GayObject extends GayBasic {
     var hitW: Int = 8
     var hitH: Int = 8
 
+    var solid: Boolean = false
+    var destroyed: Boolean = false
+
+    var facingRight: Boolean = true
+
+    var speedX: Float = 0
+    var speedY: Float = 0
+
+    def worldHitbox: gaymath.Rect = {
+        gaymath.Rect(x + hitX, y + hitY, hitW, hitH)
+    }
     def moveRaw(bx: Float, by: Float): Unit = {
         xRemainder += bx
         val mx = (xRemainder + 0.5f).toInt
@@ -41,8 +52,90 @@ trait GayObject extends GayBasic {
         yRemainder -= my.toFloat
         y = y + my
     }
+    def checkSolid(ox: Int, oy: Int): Boolean = {
+        val hitbox = worldHitbox.offset(ox, oy)
+        val imin = math.floorDiv(hitbox.x, 8)
+        val imax = math.floorDiv(hitbox.right - 1, 8)
+        val jmin = math.floorDiv(hitbox.y, 8) + 1
+        val jmax = math.floorDiv(hitbox.bottom - 1, 8) + 1
+        val res = (imin to imax).exists { i =>
+            (jmin to jmax).exists { j => 
+                solidMap(i, j)
+            }
+        }
+        if (res)
+            return true
+
+        return game.gamestate.objects.exists { it =>
+            it match {
+                case o: GayObject => 
+                    o.solid && o != this && !o.destroyed && hitbox.overlaps(o.worldHitbox)
+                case _ => false
+            }
+        }
+    }
+   
+    def moveX(bx: Float, onCollide: Option[(Int, Int) => Boolean]): Boolean = {
+        xRemainder += bx
+        var mx: Int = (xRemainder + 0.5).toInt
+        xRemainder -= mx.toFloat
+
+        val total = mx
+        val mxs = math.signum(mx)
+
+        while (mx != 0) {
+            if (checkSolid(mxs, 0)) {
+                return onCollide match {
+                    case Some(func) => func(total - mx, total)
+                    case None => true
+                }
+            } else {
+                x = x + mxs
+                mx -= mxs
+            }
+        }
+
+        false
+    }
+    def moveY(by: Float, onCollide: Option[(Int, Int) => Boolean]): Boolean = {
+        yRemainder += by
+        var my: Int = (yRemainder + 0.5).toInt
+        yRemainder -= my.toFloat
+
+        val total = my
+        val mys = math.signum(my)
+
+        while (my != 0) {
+            if (checkSolid(0, mys)) {
+                return onCollide match {
+                    case Some(func) => func(total - my, total)
+                    case None => true
+                }
+            } else {
+                y = y + mys
+                my -= mys
+            }
+        }
+
+        false
+    }
+    def onCollideX(moved: Int, target: Int): Boolean = {
+        xRemainder = 0
+        speedX = 0
+        true
+    }
+    def onCollideY(moved: Int, target: Int): Boolean = {
+        yRemainder = 0
+        speedY = 0
+        true
+    }
+    def die(): Unit = ()
 }
 
+
+def solidMap(x: Int, y: Int): Boolean = {
+    game.gamestate.world.tiles.fg.get(x, y).isDefined
+}
 
 sealed trait GayGraphic {
     def width: Int
@@ -74,8 +167,12 @@ trait GaySprite(var graphic: GayGraphic) extends GayObject, draw.Renderable {
         val matrices = ctx.stack
         matrices.translate(-(scrollFactor.x * ctx.camera.x.toFloat).toFloat, -(scrollFactor.y * ctx.camera.y.toFloat).toFloat, 0)
         matrices.translate(x.toFloat, y.toFloat, 0)
+        if (!facingRight) {
+            matrices.translate(graphic.width.toFloat, 0, 0)
+            matrices.scale(-1, 1, 1)
+        }   
         matrices.scaleXY(graphic.width.toFloat, graphic.height.toFloat)
-        
+    
         graphic.draw(matrices)
     }
 
@@ -115,7 +212,7 @@ class GameState() {
     var camera = gaymath.Point(0, 0)
     val input1 = Input(0)
     val world = World.load()
-    objects.append(new FreakyObject(input1,draw.TextureAtlas.split(Textures.playerSheet, 4, 1)))
+    objects.append(new Player(input1))
     def run(): Unit = {
         val stack = draw.MatrixStack()
         stack.scale(1, -1, 1)
