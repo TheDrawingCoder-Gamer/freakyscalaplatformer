@@ -2,7 +2,7 @@ import scala.collection.{mutable => mut}
 import gay.menkissing.common.math as gaymath
 import scala.util.Using
 
-import org.joml.Matrix3f
+import org.joml.Matrix4f
 import org.lwjgl.opengl.*
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.system.*
@@ -56,8 +56,8 @@ trait GayObject extends GayBasic {
         val hitbox = worldHitbox.offset(ox, oy)
         val imin = math.floorDiv(hitbox.x, 8)
         val imax = math.floorDiv(hitbox.right - 1, 8)
-        val jmin = math.floorDiv(hitbox.y, 8) + 1
-        val jmax = math.floorDiv(hitbox.bottom - 1, 8) + 1
+        val jmin = math.floorDiv(hitbox.y, 8)
+        val jmax = math.floorDiv(hitbox.bottom - 1, 8)
         val res = (imin to imax).exists { i =>
             (jmin to jmax).exists { j => 
                 solidMap(i, j)
@@ -212,11 +212,40 @@ class GameState() {
     var camera = gaymath.Point(0, 0)
     val input1 = Input(0)
     val world = World.load()
+    val framebufferTex = glGenTextures()
+    var frame = 0
+    glBindTexture(GL_TEXTURE_2D, framebufferTex)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, draw.renderWidth, draw.renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
+    glBindTexture(GL_TEXTURE_2D, 0)
+    val rbo = glGenRenderbuffers()
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo)
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, draw.renderWidth, draw.renderHeight)
+    glBindRenderbuffer(GL_RENDERBUFFER, 0)
+    val framebuffer = glGenFramebuffers()
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+    glFramebufferTexture2D(GL_FRAMEBUFFER,
+                        GL_COLOR_ATTACHMENT0,
+                        GL_TEXTURE_2D,
+                        framebufferTex,
+                        0)
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                        GL_DEPTH_ATTACHMENT,
+                        GL_RENDERBUFFER,
+                        rbo)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    val screenTransform = Matrix4f()
     objects.append(new Player(input1))
     def run(): Unit = {
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+        glViewport(0, 0, renderWidth, renderHeight)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         val stack = draw.MatrixStack()
-        stack.scale(1, -1, 1)
-        stack.ortho(0, renderWidth, 0, renderHeight, 0, 1)
+        
+        stack.ortho(0, renderWidth, renderHeight, 0, -1, 1)
         input1.update()
         drawMap(stack)
         for (obj <- objects) {
@@ -226,6 +255,21 @@ class GameState() {
                 case _ => ()
             }
         }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glViewport(0, 0, windowWidth, windowHeight)
+
+        glUseProgram(draw.Shaders.defaultProgram)
+        glBindVertexArray(draw.screenVertices.VAO)
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, framebufferTex)
+
+
+        draw.bindTransform(draw.Shaders.defaultProgram, screenTransform, Matrix4f())
+
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+        frame += 1
+        frame %= 32767
+
     }
     def drawMap(stack: draw.MatrixStack): Unit = stack.scoped {
         stack.translate(-camera.x, -camera.y, 0)

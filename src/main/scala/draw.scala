@@ -76,10 +76,37 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
+  val solidColorFragmentShader = {
+    val freakyCode =
+      """
+      #version 330 core
+      out vec4 FragColor;
+
+      in vec2 texCoord;
+
+      uniform vec4 solidColor;
+
+      void main()
+      {
+        FragColor = solidColor;
+      }
+      """
+    val shader = glCreateShader(GL_FRAGMENT_SHADER)
+    glShaderSource(shader, freakyCode)
+    glCompileShader(shader)
+    shader
+  }
   val defaultProgram = {
     val program = glCreateProgram()
     glAttachShader(program, defaultVertexShader)
     glAttachShader(program, defaultFragmentShader)
+    glLinkProgram(program)
+    program
+  }
+  val solidColorProgram = {
+    val program = glCreateProgram()
+    glAttachShader(program, defaultVertexShader)
+    glAttachShader(program, solidColorFragmentShader)
     glLinkProgram(program)
     program
   }
@@ -92,6 +119,19 @@ lazy val squareVertices = Using.resource(stackPush()) { stack =>
     1f,0f, 0.0f, 1.0f, 0.0f,
     0f,0f, 0.0f, 0.0f, 0.0f,
     0f,1f, 0.0f, 0.0f, 1.0f
+    )
+  val indices = stack.ints(
+    0, 1, 3,
+    1, 2, 3
+    )
+  Vertices(memByteBuffer(verts), memByteBuffer(indices))
+}
+lazy val screenVertices = Using.resource(stackPush()) { stack =>
+  val verts = stack.floats(
+     1f, 1f,0f, 1f, 1f,
+     1f,-1f,0f, 1f, 0f,
+    -1f,-1f,0f, 0f, 0f,
+    -1f, 1f,0f, 0f, 1f
     )
   val indices = stack.ints(
     0, 1, 3,
@@ -251,6 +291,21 @@ class MatrixStack extends Matrix4f {
       block
     }
   }
+  def translated[T](x: Float, y: Float)(block: => T): T = {
+    pushMatrix()
+    translate(x, y, 0)
+    val res = block
+    popMatrix()
+    res
+  }
+  def transformed[T](x: Float, y: Float, w: Float, h: Float)(block: => T): T = {
+    pushMatrix()
+    translate(x, y, 0)
+    scaleXY(w, h)
+    val res = block
+    popMatrix()
+    res
+  }
   class ScopedStack extends Closeable {
     var closed = false
     pushMatrix()
@@ -294,5 +349,61 @@ object TextureAtlas {
       }
     }
     atlas
+  }
+  def splitBySize(tex: Texture, w: Int, h: Int): TextureAtlas = {
+    if (tex.width % w != 0 || tex.height % h != 0)
+      throw new RuntimeException("can't split unevenly")
+    val atlas = new TextureAtlas(tex)
+    val xs = tex.width / w
+    val ys = tex.height / h
+    for {
+      y <- 0 until ys
+      x <- 0 until xs
+    } {
+      atlas.add(((ys * y) + x).toString, x * w, y * h, w, h)
+    }
+    atlas
+  }
+}
+
+final val tau: Double = math.Pi * 2
+def filledCircle(numSegments: Int = 20): Unit = {
+  glBegin(GL_TRIANGLE_FAN)
+  glVertex2f(0, 0)
+  for (i <- 0 to numSegments) {
+    val theta = i.toDouble * tau / numSegments
+    glVertex2f(
+      math.cos(theta).toFloat,
+      math.sin(theta).toFloat
+      
+      )
+  }
+  glEnd()
+}
+
+def circle(numSegments: Int = 20): Unit = {
+  glBegin(GL_LINE_LOOP)
+  for (i <- 0 to numSegments) {
+    val theta = i.toDouble * tau / numSegments
+    glVertex2f(math.cos(theta).toFloat, math.sin(theta).toFloat)
+  }
+  glEnd()
+}
+
+def bindTransform(shader: Int, transform: Matrix4f, texTransform: Matrix4f): Unit = {
+  val transformLoc = glGetUniformLocation(shader, "transform")
+  val texTransformLoc = glGetUniformLocation(shader, "texTransform")
+
+
+  Using.resource(stackPush()) { stack => 
+    
+    val fb = memAllocFloat(16)
+
+    glUniformMatrix4fv(transformLoc, false, transform.get(fb))
+
+    val fb2 = memAllocFloat(16)
+
+    glUniformMatrix4fv(texTransformLoc, false,  texTransform.get(fb2))
+
   }
 }
