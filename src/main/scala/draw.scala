@@ -390,6 +390,28 @@ def circle(numSegments: Int = 20): Unit = {
   glEnd()
 }
 
+
+case class Color(r: Float, g: Float, b: Float, a: Float)
+
+object Color {
+  def fromRGBA8(r: Int, g: Int, b: Int, a: Int) = new Color(r.toFloat / 255, g.toFloat / 255, b.toFloat / 255, a.toFloat / 255)
+  def fromHex(hex: Int): Color = {
+    val r = (hex & 0x00FF0000) >>> 16
+    val g = (hex & 0x0000FF00) >>> 8
+    val b = (hex & 0x000000FF)
+    val a = (hex & 0xFF000000) >>> 24
+    fromRGBA8(r, g, b, a)
+
+  }
+}
+
+def setSolidColor(color: Color, transform: Matrix4f): Unit = {
+  glUseProgram(Shaders.solidColorProgram)
+  bindTransform(Shaders.solidColorProgram, transform, new Matrix4f())
+  val colorLoc = glGetUniformLocation(Shaders.solidColorProgram, "solidColor")
+  glUniform4f(colorLoc, color.r, color.g, color.b, color.a)
+}
+
 def bindTransform(shader: Int, transform: Matrix4f, texTransform: Matrix4f): Unit = {
   val transformLoc = glGetUniformLocation(shader, "transform")
   val texTransformLoc = glGetUniformLocation(shader, "texTransform")

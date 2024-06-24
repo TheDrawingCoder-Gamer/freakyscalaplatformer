@@ -32,6 +32,12 @@ object Player {
     val wallJumpVertSpeed = -3
 
     val playerAtlas = draw.TextureAtlas.splitBySize(Textures.playerSheet, 16, 16)
+
+    val unkDashColor = draw.Color.fromHex(0xFF000000)
+    val dashColors = Vector(
+        draw.Color.fromHex(0xFF107EE5),
+        draw.Color.fromHex(0xFFE51061)
+        )
 }
 
 class Player(val input: Input) extends GayObject, draw.Renderable {
@@ -46,6 +52,9 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
 
     var skullOffsetX: Int = 0
     var skullOffsetY: Int = 0
+
+    var dashes: Int = 1
+    var maxDashes: Int = 1
 
     hitX = 2
     hitY = 2
@@ -157,10 +166,7 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
         matrices.scoped {
             matrices.translate(7 + skullOffsetX, 5 + skullOffsetY, 0)
             matrices.scaleXY(5, 5)
-            glUseProgram(draw.Shaders.solidColorProgram)
-            draw.bindTransform(draw.Shaders.solidColorProgram, matrices, new Matrix4f())
-            val colorLoc = glGetUniformLocation(draw.Shaders.solidColorProgram, "solidColor") 
-            glUniform4f(colorLoc, 1, 0, 0, 1)
+            draw.setSolidColor(Player.dashColors.lift(dashes).getOrElse(Player.unkDashColor), matrices)
             draw.filledCircle()
         }
         matrices.scoped {
