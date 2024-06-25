@@ -76,7 +76,7 @@ object CamMode {
 }
 
 enum EntityData {
-    case PlayerStart(worldStart: Boolean)
+    case Destructible
 }
 
 case class Entity(x: Int, y: Int, w: Int, h: Int, data: EntityData)
@@ -89,15 +89,8 @@ object Entity {
         val eh = entity.height
         
         val entityData = entity.__identifier match {
-            case "PlayerStart" => {
-                var worldStart = false
-                for (field <- entity.fieldInstances) {
-                    if (field.__identifier == "WorldStart") {
-                        worldStart = field.__value.bool
-                    }
-                }
-                Some(EntityData.PlayerStart(worldStart))
-            }
+            case "PlayerStart" => None
+            case "Destructible" => Some(EntityData.Destructible)
             case _ => None
         }
 
@@ -107,7 +100,16 @@ object Entity {
 }
 
 
-case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: List[Entity]) 
+case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: List[Entity], playerStarts: List[gaymath.Point]) {
+    def instance(): Unit = {
+        for (entity <- entities) {
+            // TODO : )
+            entity.data match {
+                case EntityData.Destructible => ()
+            }
+        }
+    }
+} 
 
 def addTilesToMap(tileX: Int, tileY: Int, map: mut.HashMap[(Int, Int), Int], tiles: List[LDtkAutoLayerTile]): Unit = {
     for (autoTile <- tiles) {
@@ -118,14 +120,16 @@ def addTilesToMap(tileX: Int, tileY: Int, map: mut.HashMap[(Int, Int), Int], til
     }
 }
 
-case class World(levels: List[Level], tiles: Tiles)
+case class WorldStart(level: Int, pos: gaymath.Point)
+case class World(start: WorldStart, levels: List[Level], tiles: Tiles)
 
 object World {
     def fromLDtk(map: LDtkMap): World = {
         val bgMap = mut.HashMap[(Int, Int), Int]()
         val fgMap = mut.HashMap[(Int, Int), Int]()
         val levels = mut.ListBuffer[Level]()
-        for (level <- map.levels) {
+        var worldStart = WorldStart(0, gaymath.Point(0, 0))
+        for ((level, idx) <- map.levels.zipWithIndex) {
             val tileX = math.floorDiv(level.worldX, 8)
             val tileY = math.floorDiv(level.worldY, 8)
             val tileW = math.floorDiv(level.pxWid, 8)
@@ -133,6 +137,7 @@ object World {
             val entities = mut.ListBuffer[Entity]()
             var bottomDeath = false
             var camMode = CamMode.Locked
+            val playerStarts = mut.ListBuffer[gaymath.Point]()
 
             for (layer <- level.layerInstances) {
                 layer.__identifier match {
@@ -140,7 +145,28 @@ object World {
                     case "Bg" => addTilesToMap(tileX, tileY, bgMap, layer.autoLayerTiles)
                     case "Entities" => {
                         for (entity <- layer.entityInstances) {
-                            Entity.fromLDtk(level.worldX, level.worldY, entity).foreach(entities.append)
+                            entity.__identifier match {
+                                case "PlayerStart" => {
+                
+                                    var isWorldStart = false
+                                    for (field <- entity.fieldInstances) {
+                                        if (field.__identifier == "WorldStart") {
+                                            isWorldStart = field.__value.bool
+                                        }
+                                    }
+                                    val daX = math.floorDiv(entity.__worldX, 8)
+                                    val daY = math.floorDiv(entity.__worldY, 8)
+                                    val point = gaymath.Point(daX, daY)
+                                    if (isWorldStart) {
+                                        worldStart = WorldStart(idx, point)
+                                    }
+                                    playerStarts.append(point)
+
+                                }
+                                case _ => {
+                                    Entity.fromLDtk(level.worldX, level.worldY, entity).foreach(entities.append)
+                                }
+                            }
                         }
                     }
                 }
@@ -155,11 +181,10 @@ object World {
                 } 
             }
 
-            levels.append(Level(tileX, tileY, tileW, tileH, bottomDeath, camMode, entities.toList))
+            levels.append(Level(tileX, tileY, tileW, tileH, bottomDeath, camMode, entities.toList, playerStarts.toList))
         }
         val tiles = Tiles(TileMap.fromMap(fgMap), TileMap.fromMap(bgMap))
-
-        World(levels.toList, tiles)
+        World(worldStart, levels.toList, tiles)
     }
     def load(): World = {
         val map = ujson.InputStreamParser.transform[LDtkMap](getClass.getResourceAsStream("map.ldtk"), upickle.default.reader[LDtkMap])

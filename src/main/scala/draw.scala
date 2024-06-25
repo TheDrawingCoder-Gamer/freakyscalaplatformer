@@ -28,7 +28,7 @@ val renderHeight = 180
 case class GraphicsContext(stack: MatrixStack, camera: gay.menkissing.common.math.Point)
 
 trait Renderable {
-  def render(ctx: GraphicsContext): Unit
+  def render(): Unit
 }
 
 // objects r lazy, but once referenced all their fields r forced
@@ -139,6 +139,32 @@ lazy val screenVertices = Using.resource(stackPush()) { stack =>
     )
   Vertices(memByteBuffer(verts), memByteBuffer(indices))
 }
+
+def setCircleVerts(vertBuf: FloatBuffer, idxBuf: IntBuffer, startIdx: Int, numSegments: Int = 20): Unit = {
+  for (i <- 0 to numSegments) {
+    val theta = i.toDouble * tau / numSegments 
+    vertBuf.put(startIdx * 2 + i * 2, math.cos(theta).toFloat)
+    vertBuf.put(startIdx * 2 + i * 2 + 1, math.sin(theta).toFloat)
+    idxBuf.put(startIdx + i, startIdx + i)
+  }
+}
+
+lazy val circleEdgeVerticies = Using.resource(stackPush()) { stack =>
+  val verts = stack.callocFloat(21 * 2)
+  val indices = stack.callocInt(21)
+  setCircleVerts(verts, indices, 0)
+  SimpleVerts(memByteBuffer(verts), memByteBuffer(indices))
+}
+
+lazy val filledCircleVerticies = Using.resource(stackPush()) { stack =>
+  val verts = stack.callocFloat(22 * 2)
+  val indices = stack.callocInt(22)
+  verts.put(0, 0.0f)
+  verts.put(1, 0.0f)
+  indices.put(0, 0)
+  setCircleVerts(verts, indices, 1)
+  SimpleVerts(memByteBuffer(verts), memByteBuffer(indices))
+}
 // should free the buffer after this
 class Buffer(buf: ByteBuffer, kind: Int, expectedUse: Int) extends Closeable {
   var closed = false
@@ -160,18 +186,14 @@ class Buffer(buf: ByteBuffer, kind: Int, expectedUse: Int) extends Closeable {
   }
 }
 
-class Vertices(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Closeable {
+abstract class Vert(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Closeable {
   var closed = false
   val VAO = glGenVertexArrays()
 
   glBindVertexArray(VAO)
-
   val vertexBuffer = Buffer(vertBuf, GL_ARRAY_BUFFER, GL_STATIC_DRAW)
 
-  glEnableVertexAttribArray(0)
-  glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * 4, 0)
-  glEnableVertexAttribArray(1)
-  glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * 4, 3 * 4)
+  initPtrs()
 
   val indexBuffer = Buffer(indexBuf, GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW)
 
@@ -189,9 +211,27 @@ class Vertices(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Closeable {
       dispose()
     }
   }
+
+  def initPtrs(): Unit
 }
 
-class Texture private (buf: ByteBuffer, interpMin: Int, interpMag: Int) extends Closeable {
+class Vertices(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Vert(vertBuf, indexBuf) {
+  def initPtrs(): Unit = {
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * 4, 0)
+    glEnableVertexAttribArray(1)
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * 4, 3 * 4)
+  }
+}
+
+class SimpleVerts(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Vert(vertBuf, indexBuf) {
+  def initPtrs(): Unit = {
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * 4, 0)
+  }
+}
+
+class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int) extends Closeable {
   var closed = false
   stbi_set_flip_vertically_on_load(false)
   val texture = glGenTextures()
@@ -220,7 +260,6 @@ class Texture private (buf: ByteBuffer, interpMin: Int, interpMag: Int) extends 
     (xp.get(0), yp.get(0))
   }
 
-  memFree(buf)
   def close(): Unit = {
     if (!closed) {
       closed = true
@@ -228,7 +267,7 @@ class Texture private (buf: ByteBuffer, interpMin: Int, interpMag: Int) extends 
     }
   }
 
-  def draw(matrices: MatrixStack, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
+  def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
     glUseProgram(Shaders.defaultProgram)
     glBindVertexArray(squareVertices.VAO)
     glActiveTexture(GL_TEXTURE0)
@@ -241,21 +280,21 @@ class Texture private (buf: ByteBuffer, interpMin: Int, interpMag: Int) extends 
     transTexMtx.translate(sx.toFloat / width, sy.toFloat / height, 0)
     transTexMtx.scale(sw.toFloat / width, sh.toFloat/ height, 0)
     Using.resource(stackPush()) { stack => 
-      val fb = memAllocFloat(16)
+      val fb = stack.mallocFloat(16)
 
       glUniformMatrix4fv(transformLoc, false, matrices.get(fb))
 
-      val fb2 = memAllocFloat(16)
+      val fb2 = stack.mallocFloat(16)
 
       glUniformMatrix4fv(texTransformLoc, false, transTexMtx.get(fb2))
 
     }
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
   }
-  def draw(matrices: MatrixStack, segment: TextureSegment): Unit = {
+  def draw(matrices: Matrix4f, segment: TextureSegment): Unit = {
     draw(matrices, segment.x, segment.y, segment.w, segment.h)
   }
-  def draw(matrices: MatrixStack): Unit = draw(matrices, 0, 0, width, height)
+  def draw(matrices: Matrix4f): Unit = draw(matrices, 0, 0, width, height)
 }
 
 object Texture {
@@ -264,7 +303,9 @@ object Texture {
     val bytes = input.readAllBytes()
     val buf = memAlloc(bytes.length)
     buf.put(bytes)
-    new Texture(buf, min_filter, mag_filter)
+    val tex = new Texture(buf, min_filter, mag_filter)
+    memFree(buf)
+    tex
   }
 }
 
@@ -331,7 +372,7 @@ class TextureAtlas(val texture: Texture) extends mut.HashMap[String, TextureSegm
     update(name, seg)
   }
 
-  def draw(matrices: MatrixStack, name: String): Unit = {
+  def draw(matrices: Matrix4f, name: String): Unit = {
     texture.draw(matrices, get(name).get)
   }
 }
@@ -367,27 +408,14 @@ object TextureAtlas {
 }
 
 final val tau: Double = math.Pi * 2
-def filledCircle(numSegments: Int = 20): Unit = {
-  glBegin(GL_TRIANGLE_FAN)
-  glVertex2f(0, 0)
-  for (i <- 0 to numSegments) {
-    val theta = i.toDouble * tau / numSegments
-    glVertex2f(
-      math.cos(theta).toFloat,
-      math.sin(theta).toFloat
-      
-      )
-  }
-  glEnd()
+def filledCircle(): Unit = {
+  glBindVertexArray(filledCircleVerticies.VAO)
+  glDrawElements(GL_TRIANGLE_FAN, 22, GL_UNSIGNED_INT, 0)
 }
 
-def circle(numSegments: Int = 20): Unit = {
-  glBegin(GL_LINE_LOOP)
-  for (i <- 0 to numSegments) {
-    val theta = i.toDouble * tau / numSegments
-    glVertex2f(math.cos(theta).toFloat, math.sin(theta).toFloat)
-  }
-  glEnd()
+def circle(): Unit = {
+  glBindVertexArray(circleEdgeVerticies.VAO)
+  glDrawElements(GL_LINE_LOOP, 21, GL_UNSIGNED_INT, 0)
 }
 
 
@@ -419,11 +447,11 @@ def bindTransform(shader: Int, transform: Matrix4f, texTransform: Matrix4f): Uni
 
   Using.resource(stackPush()) { stack => 
     
-    val fb = memAllocFloat(16)
+    val fb = stack.mallocFloat(16)
 
     glUniformMatrix4fv(transformLoc, false, transform.get(fb))
 
-    val fb2 = memAllocFloat(16)
+    val fb2 = stack.mallocFloat(16)
 
     glUniformMatrix4fv(texTransformLoc, false,  texTransform.get(fb2))
 

@@ -29,6 +29,11 @@ class Input(val player: Byte) {
     inputJumpPressed = 0
     res
   }
+  def consumeActionPress(): Boolean = {
+    val res = inputActionPressed > 0
+    inputActionPressed = 0
+    res
+  }
   def update(): Unit = Using.resource(stackPush()) { stack =>
     val prevX: Byte = axisXValue
     val prevY: Byte = axisYValue
