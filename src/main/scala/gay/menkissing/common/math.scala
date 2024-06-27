@@ -140,7 +140,7 @@ case class Rect(x: Int, y: Int, w: Int, h: Int) {
     val oy2 = that.bottom
 
 
-    sx2 > ox1 && sy2 > oy1 && sy2 < oy1 && sy1 < oy2
+    sx2 > ox1 && sy2 > oy1 && sx1 < ox2 && sy1 < oy2
   }
   def contains(px: Int, py: Int): Boolean =
     px >= this.x &&

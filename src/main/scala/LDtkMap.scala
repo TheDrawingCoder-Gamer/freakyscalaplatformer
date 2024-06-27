@@ -1,5 +1,6 @@
 import upickle.default.*
 import collection.mutable as mut
+import collection.immutable as immut
 import gay.menkissing.common.math as gaymath
 import java.io.InputStreamReader
 
@@ -100,12 +101,17 @@ object Entity {
 }
 
 
-case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: List[Entity], playerStarts: List[gaymath.Point]) {
-    def instance(): Unit = {
+case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: immut.ArraySeq[Entity], playerStarts: List[gaymath.Point]) {
+    def addEntities(to: mut.ListBuffer[GayObject]): Unit = {
         for (entity <- entities) {
             // TODO : )
             entity.data match {
-                case EntityData.Destructible => ()
+                case EntityData.Destructible => to.addOne {
+                    val dest = new Destructible()
+                    dest.x = entity.x
+                    dest.y = entity.y
+                    dest
+                }
             }
         }
     }
@@ -181,7 +187,7 @@ object World {
                 } 
             }
 
-            levels.append(Level(tileX, tileY, tileW, tileH, bottomDeath, camMode, entities.toList, playerStarts.toList))
+            levels.append(Level(tileX, tileY, tileW, tileH, bottomDeath, camMode, immut.ArraySeq.from(entities), playerStarts.toList))
         }
         val tiles = Tiles(TileMap.fromMap(fgMap), TileMap.fromMap(bgMap))
         World(worldStart, levels.toList, tiles)

@@ -3493,18 +3493,18 @@
 						},
 						{
 							"__identifier": "Destructible",
-							"__grid": [11,16],
+							"__grid": [8,16],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#D77643",
-							"iid": "0e17b920-25d0-11ef-b787-7bf346380fb6",
+							"iid": "41b95ea0-25d0-11ef-80e5-9f2f09a9fc37",
 							"width": 16,
 							"height": 16,
 							"defUid": 344,
-							"px": [88,128],
+							"px": [64,128],
 							"fieldInstances": [],
-							"__worldX": 88,
+							"__worldX": 64,
 							"__worldY": 128
 						}
 					]

@@ -112,6 +112,21 @@ object Shaders {
   }
 }
 
+object VertInstances {
+  val squareOutline = Using.resource(stackPush()) { stack =>
+    val verts = stack.floats(
+        1f, 1f,
+        1f, 0f,
+        0f, 0f,
+        0f, 1f
+      )
+    val indices = stack.ints(
+      0, 1, 2, 3, 0, 0
+      )
+    SimpleVerts(memByteBuffer(verts), memByteBuffer(indices))
+  }
+}
+
 
 lazy val squareVertices = Using.resource(stackPush()) { stack =>
   val verts = stack.floats(
@@ -418,6 +433,15 @@ def circle(): Unit = {
   glDrawElements(GL_LINE_LOOP, 21, GL_UNSIGNED_INT, 0)
 }
 
+def rect(): Unit = {
+  glBindVertexArray(VertInstances.squareOutline.VAO)
+  glDrawElements(GL_LINE_STRIP, 6, GL_UNSIGNED_INT, 0)
+}
+def filledRect(): Unit = {
+  glBindVertexArray(squareVertices.VAO)
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+}
+
 
 case class Color(r: Float, g: Float, b: Float, a: Float)
 
@@ -439,6 +463,8 @@ def setSolidColor(color: Color, transform: Matrix4f): Unit = {
   val colorLoc = glGetUniformLocation(Shaders.solidColorProgram, "solidColor")
   glUniform4f(colorLoc, color.r, color.g, color.b, color.a)
 }
+
+
 
 def bindTransform(shader: Int, transform: Matrix4f, texTransform: Matrix4f): Unit = {
   val transformLoc = glGetUniformLocation(shader, "transform")

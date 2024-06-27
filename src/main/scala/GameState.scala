@@ -1,6 +1,5 @@
 import scala.collection.{mutable => mut}
 import gay.menkissing.common.math as gaymath
-import gay.menkissing.engine.*
 import scala.util.Using
 
 import org.joml.Matrix4f
@@ -17,7 +16,11 @@ import GL30.*
 import GL20.*
 
 
-class GayObject extends GayBasic {
+class GayObject extends draw.Renderable {
+    var visible: Boolean = true
+    var active: Boolean = true
+    var exists: Boolean = true
+
     var x: Int = 0
     var xRemainder: Float = 0
     var y: Int = 0
@@ -36,6 +39,8 @@ class GayObject extends GayBasic {
     var speedX: Float = 0
     var speedY: Float = 0
 
+    def update(): Unit = ()
+    def render(): Unit = ()
     def worldHitbox: gaymath.Rect = {
         gaymath.Rect(x + hitX, y + hitY, hitW, hitH)
     }
@@ -65,11 +70,7 @@ class GayObject extends GayBasic {
             return true
 
         return game.gamestate.objects.exists { it =>
-            it match {
-                case o: GayObject => 
-                    o.solid && o != this && !o.destroyed && hitbox.overlaps(o.worldHitbox)
-                case _ => false
-            }
+            it.solid && it != this && !it.destroyed && hitbox.overlaps(it.worldHitbox)
         }
     }
    
@@ -127,8 +128,25 @@ class GayObject extends GayBasic {
         speedY = 0
         true
     }
+    def destroy(): Unit = {
+        // freaky!
+        destroyed = true
+    }
     def die(): Unit = ()
+
+    def drawHitbox(): Unit = {
+        val mtx = game.gamestate.camera.matrix(x + hitX, y + hitY, hitW, hitH, gaymath.PointF(1, 1), false)
+       
+        draw.setSolidColor(draw.Color(1, 0, 0, 1), mtx)
+        draw.rect()
+    }
+
+    def touch(player: Player): Unit = ()
+    def canTouch(player: Player): Boolean = false
+
+    def squish(): Unit = die()
 }
+
 
 
 def solidMap(x: Int, y: Int): Boolean = {
@@ -159,7 +177,7 @@ class GayAtlas(val atlas: draw.TextureAtlas, var current: String) extends GayGra
 }
 
 
-trait GaySprite(var graphic: GayGraphic) extends GayObject, draw.Renderable {
+class GaySprite(var graphic: GayGraphic) extends GayObject {
     var scrollFactor: gaymath.PointF = gaymath.PointF(1, 1)
     override def render(): Unit =  {
         val mtx = game.gamestate.camera.matrix(x, y, graphic.width, graphic.height, scrollFactor, !facingRight)
@@ -191,7 +209,7 @@ class FreakyObject(val input: Input, atlas: draw.TextureAtlas) extends GaySprite
 class GayCamera(x: Int, y: Int) extends gaymath.Point(x, y) {
     def matrix(px: Int, py: Int, pw: Int, ph: Int, scrollFactor: gaymath.PointF, flipX: Boolean): Matrix4f = {
         val mtx = Matrix4f()
-        mtx.ortho(0, renderWidth, renderHeight, 0, -1, 1)
+        mtx.ortho(0.25f, renderWidth + 0.25f, renderHeight - 0.25f, -0.25f, -1, 1)
         mtx.translate(px.toFloat - (x.toFloat * scrollFactor.x.toFloat), py.toFloat - (y.toFloat * scrollFactor.y.toFloat), 0)
         if (flipX) {
             mtx.translate(pw.toFloat, 0, 0)
@@ -215,7 +233,7 @@ class GameState() {
     Textures
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    val objects = mut.ListBuffer[GayBasic]()
+    val objects = mut.ListBuffer[GayObject]()
     var camera = GayCamera(0, 0)
     val input1 = Input(0)
     val world = World.load()
@@ -251,8 +269,7 @@ class GameState() {
         player.y = world.start.pos.y * 8
         player
     }
-
-    world.levels.head.instance()
+    world.levels(world.start.level).addEntities(objects)
     def clean(killPlayer: Boolean = false): Unit = {
         for (obj <- objects) {
             if (killPlayer || !obj.isInstanceOf[Player])
@@ -277,10 +294,11 @@ class GameState() {
         stack.ortho(0, renderWidth, renderHeight, 0, -1, 1)
         input1.update()
         drawMap(stack)
-        for (obj <- objects) {
+        objects.foreach { obj => 
             obj.update()
             obj.render()
         }
+        objects.filterInPlace(!_.destroyed)
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         glViewport(0, 0, windowWidth, windowHeight)
 

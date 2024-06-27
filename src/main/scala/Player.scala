@@ -62,9 +62,9 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
     var downDash: Boolean = false
     var tDashTime: Int = 0
 
-    hitX = 2
+    hitX = 4
     hitY = 2
-    hitW = 5
+    hitW = 8
     hitH = 14
 
     override def update() = {
@@ -185,6 +185,12 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
 
         moveX(speedX, Some(onCollideX))
         moveY(speedY, Some(onCollideY))
+
+        game.gamestate.objects.foreach { obj => 
+            if (obj.canTouch(this) && obj.worldHitbox.overlaps(this.sniffZone)) {
+                obj.touch(this)
+            } 
+        }
     }
 
     def rawJump(_playSound: Boolean): Boolean = {
@@ -206,6 +212,8 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
         recharging = false
         tRecharge = 0
     }
+    def sniffZone: gaymath.Rect =
+        gaymath.Rect(x - 2, y - 1, 18, 18)
 
     def wallBounce(dir: Int): Unit = {
         input.consumeJumpPress()
