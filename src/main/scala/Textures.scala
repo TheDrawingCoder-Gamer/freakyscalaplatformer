@@ -3,4 +3,5 @@ object Textures {
     val playerSheet = draw.Texture(getClass.getResourceAsStream("player_sheet.png"))
     val tiles = draw.Texture(getClass.getResourceAsStream("tiles.png"))
     val destructible = draw.Texture(getClass.getResourceAsStream("destructible.png"))
+    val haxe = draw.Texture(getClass.getResourceAsStream("haxe1.png"))
 }

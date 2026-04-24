@@ -1,39 +1,40 @@
 package draw
 
-import java.nio.*
-import java.io.*
-import scala.collection.mutable.Stack
-import scala.collection.mutable as mut
-
-import org.joml.{Matrix4f, Matrix3f}
-import org.lwjgl.system.*
+import org.joml.Matrix4f
 import org.lwjgl.opengl.*
+import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL13.*
+import org.lwjgl.opengl.GL15.*
+import org.lwjgl.opengl.GL20.*
+import org.lwjgl.opengl.GL30.*
 import org.lwjgl.stb.*
-import MemoryUtil.*
-import MemoryStack.*
+import org.lwjgl.stb.STBImage.*
+import org.lwjgl.system.*
+import org.lwjgl.system.MemoryStack.*
+import org.lwjgl.system.MemoryUtil.*
 
-import STBImage.*
-
-import GL20.*
-import GL11.*
-import GL13.*
-import GL15.*
-import GL30.*
-
+import java.io.*
+import java.nio.*
+import scala.collection.mutable as mut
+import scala.collection.mutable.Stack
 import scala.util.Using
 
 val renderWidth = 320
 val renderHeight = 180
 
+// size of assets that are fullscreen
+val fullRenderWidth = renderWidth * 6
+val fullRenderHeight = renderHeight * 6
+
 case class GraphicsContext(stack: MatrixStack, camera: gay.menkissing.common.math.Point)
 
 trait Renderable {
-  def render(): Unit
+  def render(matrices: MatrixStack): Unit
 }
 
 // objects r lazy, but once referenced all their fields r forced
 object Shaders {
-  val defaultVertexShader = {
+  private val defaultVertexShader = {
     val freakyCode =
       """
       #version 330 core
@@ -56,7 +57,7 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
-  val defaultFragmentShader = {
+  private val defaultFragmentShader = {
     val freakyCode =
       """
       #version 330 core
@@ -76,7 +77,7 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
-  val solidColorFragmentShader = {
+  private val solidColorFragmentShader = {
     val freakyCode =
       """
       #version 330 core
@@ -110,6 +111,10 @@ object Shaders {
     glLinkProgram(program)
     program
   }
+  
+  glDeleteShader(defaultVertexShader)
+  glDeleteShader(defaultFragmentShader)
+  glDeleteShader(solidColorFragmentShader)
 }
 
 object VertInstances {
@@ -422,7 +427,7 @@ object TextureAtlas {
   }
 }
 
-final val tau: Double = math.Pi * 2
+val tau: Double = math.Pi * 2
 def filledCircle(): Unit = {
   glBindVertexArray(filledCircleVerticies.VAO)
   glDrawElements(GL_TRIANGLE_FAN, 22, GL_UNSIGNED_INT, 0)

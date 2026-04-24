@@ -21,6 +21,8 @@ class GayObject extends draw.Renderable {
     var active: Boolean = true
     var exists: Boolean = true
 
+    var cameras = mut.Buffer[GayView]()
+
     var x: Int = 0
     var xRemainder: Float = 0
     var y: Int = 0
@@ -40,7 +42,7 @@ class GayObject extends draw.Renderable {
     var speedY: Float = 0
 
     def update(): Unit = ()
-    def render(): Unit = ()
+    def render(matrices: draw.MatrixStack): Unit = ()
     def worldHitbox: gaymath.Rect = {
         gaymath.Rect(x + hitX, y + hitY, hitW, hitH)
     }
@@ -135,11 +137,16 @@ class GayObject extends draw.Renderable {
     def die(): Unit = ()
 
     def drawHitbox(): Unit = {
-        val mtx = game.gamestate.camera.matrix(x + hitX, y + hitY, hitW, hitH, gaymath.PointF(1, 1), false)
+        val matrix = game.gamemanager.pixelCam.makeStack()
+        matrix.translate(x + hitX, y + hitY, 0)
+        matrix.scale(hitW, hitH, 1)
        
-        draw.setSolidColor(draw.Color(1, 0, 0, 1), mtx)
+        draw.setSolidColor(draw.Color(1, 0, 0, 1), matrix)
         draw.rect()
     }
+
+    def viewableOnCamera(cam: GayView): Boolean =
+        visible && (if (cameras.isEmpty) game.gamemanager.GayViews.defaults(cam) else cameras.contains(cam))
 
     def touch(player: Player): Unit = ()
     def canTouch(player: Player): Boolean = false
@@ -169,8 +176,8 @@ case class GayTexture(tex: draw.Texture) extends GayGraphic {
 }
 
 class GayAtlas(val atlas: draw.TextureAtlas, var current: String) extends GayGraphic {
-    def width = atlas.get(current).get.w
-    def height = atlas.get(current).get.h
+    def width = atlas(current).w
+    def height = atlas(current).h
     def draw(matrices: Matrix4f): Unit = {
         atlas.draw(matrices, current)
     }
@@ -179,10 +186,17 @@ class GayAtlas(val atlas: draw.TextureAtlas, var current: String) extends GayGra
 
 class GaySprite(var graphic: GayGraphic) extends GayObject {
     var scrollFactor: gaymath.PointF = gaymath.PointF(1, 1)
-    override def render(): Unit =  {
-        val mtx = game.gamestate.camera.matrix(x, y, graphic.width, graphic.height, scrollFactor, !facingRight)
+    override def render(matrices: draw.MatrixStack): Unit =  {
+        matrices.pushMatrix()
+        matrices.translate(x.toFloat, y.toFloat, 0f)
+        if (!this.facingRight) {
+            matrices.translate(graphic.width.toFloat, 0, 0)
+            matrices.scale(-1, 1, 1)
+        }
+        matrices.scale(graphic.width, graphic.height, 1)
     
-        graphic.draw(mtx)
+        graphic.draw(matrices)
+        matrices.popMatrix()
     }
 
 }
@@ -229,47 +243,54 @@ class GayCamera(x: Int, y: Int) extends gaymath.Point(x, y) {
 }
 
 
-class GameState() {
-    Textures
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+abstract class GayState(val manager: GameManager) {
     val objects = mut.ListBuffer[GayObject]()
-    var camera = GayCamera(0, 0)
+
+    def start(): Unit
+
+    def run(): Unit
+
+    // Viewporting for both cases will be in pixel scale!!!
+
+
+    def render(): Unit = {
+        manager.GayViews.camList.foreach { camera =>
+          val baseMatrix = camera.makeStack()
+          camera.setupRender()
+          objects.foreach { obj =>
+            if (obj.viewableOnCamera(camera)) {
+                obj.render(baseMatrix)
+            }
+          }
+          camera.finalizeRender()
+        }
+    }
+
+    def close(): Unit
+
+    def frame: Int = manager.frame
+}
+
+class GameState(manager: GameManager) extends GayState(manager) {
+    Textures
     val input1 = Input(0)
     val world = World.load()
-    val framebufferTex = glGenTextures()
-    var frame = 0
-    glBindTexture(GL_TEXTURE_2D, framebufferTex)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, draw.renderWidth, draw.renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
-    glBindTexture(GL_TEXTURE_2D, 0)
-    val rbo = glGenRenderbuffers()
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo)
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, draw.renderWidth, draw.renderHeight)
-    glBindRenderbuffer(GL_RENDERBUFFER, 0)
-    val framebuffer = glGenFramebuffers()
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
-    glFramebufferTexture2D(GL_FRAMEBUFFER,
-                        GL_COLOR_ATTACHMENT0,
-                        GL_TEXTURE_2D,
-                        framebufferTex,
-                        0)
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
-                        GL_DEPTH_ATTACHMENT,
-                        GL_RENDERBUFFER,
-                        rbo)
-    glBindFramebuffer(GL_FRAMEBUFFER, 0)
     val screenTransform = Matrix4f()
-    objects.append { 
-        val player = new Player(input1) 
-        player.x = world.start.pos.x * 8
-        player.y = world.start.pos.y * 8
-        player
+
+    val testObject = GaySprite(GayTexture(Textures.haxe))
+
+    def start(): Unit = { 
+        objects.append { 
+            val player = new Player(input1) 
+            player.x = world.start.pos.x * 8
+            player.y = world.start.pos.y * 8
+            player
+        }
+        objects.append(testObject)
+        testObject.cameras.append(manager.fullCam)
+        world.levels(world.start.level).addEntities(objects)
     }
-    world.levels(world.start.level).addEntities(objects)
+    def close(): Unit = ()
     def clean(killPlayer: Boolean = false): Unit = {
         for (obj <- objects) {
             if (killPlayer || !obj.isInstanceOf[Player])
@@ -286,42 +307,28 @@ class GameState() {
 
     }
     def run(): Unit = {
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
-        glViewport(0, 0, renderWidth, renderHeight)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        val stack = draw.MatrixStack()
-        
-        stack.ortho(0, renderWidth, renderHeight, 0, -1, 1)
-        input1.update()
-        drawMap(stack)
         objects.foreach { obj => 
             obj.update()
-            obj.render()
         }
         objects.filterInPlace(!_.destroyed)
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        glViewport(0, 0, windowWidth, windowHeight)
-
-        glUseProgram(draw.Shaders.defaultProgram)
-        glBindVertexArray(draw.screenVertices.VAO)
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, framebufferTex)
-
-
-        draw.bindTransform(draw.Shaders.defaultProgram, screenTransform, Matrix4f())
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
-        frame += 1
-        frame %= 32767
-
+        input1.update()
     }
-    def drawMap(stack: draw.MatrixStack): Unit = stack.scoped {
-        stack.translate(-camera.x, -camera.y, 0)
-        val ccx = math.floorDiv(camera.x, 8)
-        val ccy = math.floorDiv(camera.y, 8)
 
-        val xOff = -(camera.x % 8)
-        val yOff = -(camera.y % 8)
+    override def render(): Unit = {
+        val stack = manager.pixelCam.makeStack()
+
+        manager.pixelCam.setupRender()
+        drawMap(stack)
+        manager.pixelCam.finalizeRender()
+        super.render()
+    }
+
+    def drawMap(stack: draw.MatrixStack): Unit = stack.scoped {
+        val ccx = math.floorDiv(manager.pixelCam.viewPos.x, 8)
+        val ccy = math.floorDiv(manager.pixelCam.viewPos.y, 8)
+
+        val xOff = -(manager.pixelCam.viewPos.x % 8)
+        val yOff = -(manager.pixelCam.viewPos.y % 8)
 
         val minx = ccx
         val miny = ccy
@@ -334,7 +341,7 @@ class GameState() {
                 val bgTile = world.tiles.bg.get(i, j)
                 val fgTile = world.tiles.fg.get(i, j)
                 stack.scoped {
-                    stack.translate((i - minx) * 8, (j - miny) * 8, 0)
+                    stack.translate(i * 8, j * 8, 0)
                     stack.scaleXY(8, 8)
                     bgTile.foreach { tile =>
                         Textures.tiles.draw(stack, (tile % 16) * 8, math.floorDiv(tile, 16) * 8, 8, 8)

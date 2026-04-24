@@ -62,6 +62,8 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
     var downDash: Boolean = false
     var tDashTime: Int = 0
 
+    var tDeath: Int = 0
+
     hitX = 4
     hitY = 2
     hitW = 8
@@ -92,7 +94,7 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
 
                 if (onGround) {
                     crouching = input.inputY > 0
-        }
+                }
                 var accel: Float = 0.2
 
                 if (math.abs(speedX) > 2 && math.signum(input.inputX) == math.signum(speedX)) {
@@ -102,7 +104,8 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
                 }
 
                 speedX = gaymath.approach(speedX, input.inputX.toFloat * Player.walkSpeed, accel).toFloat
-
+                
+                
                 if (crouching) {
                     spr = 4
                     skullOffsetY = 1
@@ -115,11 +118,13 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
                     } 
                 }
                 val maxFall = if (input.inputY > 0) Player.maxFastFallSpeed else Player.maxFallSpeed
+                val sliding = input.inputX != 0 && checkSolid(input.inputX, 0)
+                val slidePenalty = if (sliding) 0.8f else 1f
 
                 if (math.abs(speedY) < Player.floatThreshold && input.inputJump) {
-                    speedY = math.min(speedY + Player.floatGravity, maxFall).toFloat
+                    speedY = math.min(speedY + Player.floatGravity, maxFall).toFloat * slidePenalty
                 } else {
-                    speedY = math.min(speedY + Player.gravity, maxFall).toFloat
+                    speedY = math.min(speedY + Player.gravity, maxFall).toFloat * slidePenalty
                 }
 
                 if (!onGround) {
@@ -148,6 +153,8 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
                 if (input.inputJumpPressed > 0) {
                     if(tJumpGrace > 0) {
                         jump()
+                    } else if (sliding) {
+                        wallJump(-input.inputX)
                     }
                 }
 
@@ -158,7 +165,9 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
                 } 
 
             }
-            case Player.State.Death => {}
+            case Player.State.Death => {
+                tDeath += 1
+            }
             case Player.State.Dash => {
                 tDashTime -= 1
 
@@ -306,13 +315,9 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
             0
     }
 
-    override def render(): Unit = {
-        // freaky!
-        val matrices = draw.MatrixStack() 
-
-        matrices.ortho(0, renderWidth, renderHeight, 0, -1, 1)
-        val screenSpace = game.gamestate.camera.inScreenSpace(x, y)
-        matrices.translate(screenSpace.x.toFloat, screenSpace.y.toFloat, 0)
+    override def render(matrices: draw.MatrixStack): Unit = {
+        matrices.pushMatrix()
+        matrices.translate(x.toFloat, y.toFloat, 0)
 
         if (!facingRight) {
             matrices.translate(16, 0, 0)
@@ -334,5 +339,6 @@ class Player(val input: Input) extends GayObject, draw.Renderable {
             matrices.scaleXY(16, 16)
             Player.playerAtlas.draw(matrices, "3")
         }
+        matrices.popMatrix()
     }
 }

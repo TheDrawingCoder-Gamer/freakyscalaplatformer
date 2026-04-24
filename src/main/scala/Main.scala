@@ -13,10 +13,8 @@ import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
 
-val renderWidth = draw.renderWidth
-val renderHeight = draw.renderHeight
-val windowWidth = renderWidth * 4
-val windowHeight = renderHeight * 4
+inline def renderWidth: Int = draw.renderWidth
+inline def renderHeight: Int = draw.renderHeight
 class Game {
   GLFWErrorCallback.createPrint(System.err).set()
 
@@ -27,7 +25,7 @@ class Game {
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
 
 
-  val window = glfwCreateWindow(windowWidth, windowHeight, "gayme", NULL, NULL)
+  val window = glfwCreateWindow(Game.windowWidth, Game.windowHeight, "gayme", NULL, NULL)
 
   if (window == NULL)
     throw new RuntimeException("Failed to create GLFW Window")
@@ -45,6 +43,9 @@ class Game {
       }
     }
   })
+
+  glfwSetFramebufferSizeCallback(window, Game.resizeWindow)
+
   Using.resource(stackPush()) { stack =>
     val pwidth = stack.mallocInt(1)
     val pheight = stack.mallocInt(1)
@@ -67,16 +68,19 @@ class Game {
 
   GL.createCapabilities()
 
-  val gamestate = new GameState()
+  val gamemanager = new GameManager()
+  val gamestate = new GameState(gamemanager)
+
+  gamemanager.switchState(gamestate)
   val timer = new SyncTimer()
   def loop(): Unit = {
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-    glViewport(0, 0, windowWidth, windowHeight)
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+    glViewport(Game.paddingLeft, Game.paddingTop, Game.windowWidth, Game.windowHeight)
 
     while (!glfwWindowShouldClose(window)) {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-      gamestate.run()
+      gamemanager.run()
 
       glfwSwapBuffers(window)
       glfwPollEvents()
@@ -94,6 +98,30 @@ class Game {
     glfwTerminate()
     glfwSetErrorCallback(null).free()
   }
+}
+
+object Game {
+  var windowWidth: Int = renderWidth * 4
+  var windowHeight: Int = renderHeight * 4
+  var paddingLeft: Int = 0
+  var paddingTop: Int = 0
+
+  val aspectRatio: Double = draw.renderWidth.toDouble / draw.renderHeight.toDouble
+
+  val resizeWindow: GLFWFramebufferSizeCallback = new GLFWFramebufferSizeCallback():
+    override def invoke(window: Long, width: Int, height: Int): Unit =
+      val windowRatio = width.toDouble / height.toDouble
+      if windowRatio < aspectRatio then
+        windowWidth = width
+        paddingLeft = 0
+        windowHeight = math.round(windowWidth / aspectRatio).toInt
+        paddingTop = (height - windowHeight) / 2
+      else
+        windowHeight = height
+        paddingTop = 0
+        windowWidth = math.round(windowHeight * aspectRatio).toInt
+        paddingLeft = (width - windowWidth) / 2
+
 }
 
 lazy val game = new Game()

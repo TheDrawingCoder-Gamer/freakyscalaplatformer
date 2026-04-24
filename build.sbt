@@ -1,4 +1,4 @@
-val scala3Version = "3.4.2"
+val scala3Version = "3.8.3"
 
 val lwjglVersion = "3.3.3"
 val isOsx = System.getProperty("os.name").toLowerCase().contains("osx")
@@ -61,6 +61,5 @@ lazy val root = project
       "lwjgl-bgfx"
     ).map("org.lwjgl" % _ % lwjglVersion % Runtime classifier lwjglNatives),
     Compile / run / fork := true,
-
 
   )
