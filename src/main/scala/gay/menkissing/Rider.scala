@@ -1,4 +1,7 @@
+package gay.menkissing
+
 import gay.menkissing.common.math as gaymath
+import gay.menkissing.engine.GayObject
 // you know who else rides?
 // me :3
 trait GayRider {

@@ -1,5 +1,6 @@
 val scala3Version = "3.8.3"
 
+// TODO: Upgrading this to 3.4.1 causes a segfault?
 val lwjglVersion = "3.3.3"
 val isOsx = System.getProperty("os.name").toLowerCase().contains("osx")
 val lwjglNatives = {
@@ -35,7 +36,7 @@ val lwjglNatives = {
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "freakyplatformer",
+    name := "personagame",
     version := "0.1.0-SNAPSHOT",
 
     scalaVersion := scala3Version,
@@ -47,10 +48,11 @@ lazy val root = project
       "lwjgl-openal",
       "lwjgl-stb",
       "lwjgl-opengl",
-      "lwjgl-bgfx"
+      "lwjgl-bgfx",
+      "lwjgl-freetype"
     ).map("org.lwjgl" % _ % lwjglVersion),
-    libraryDependencies += "org.joml" % "joml" % "1.10.5",
-    libraryDependencies += "com.lihaoyi" %% "upickle" % "3.1.0",
+    libraryDependencies += "org.joml" % "joml" % "1.10.8",
+    libraryDependencies += "com.lihaoyi" %% "upickle" % "4.4.3",
     libraryDependencies ++= Seq(
       "lwjgl",
       "lwjgl-assimp",
@@ -58,8 +60,10 @@ lazy val root = project
       "lwjgl-openal",
       "lwjgl-stb",
       "lwjgl-opengl",
-      "lwjgl-bgfx"
+      "lwjgl-bgfx",
+      "lwjgl-freetype"
     ).map("org.lwjgl" % _ % lwjglVersion % Runtime classifier lwjglNatives),
+    libraryDependencies += "org.typelevel" %% "cats-core" % "2.13.0",
     Compile / run / fork := true,
 
   )

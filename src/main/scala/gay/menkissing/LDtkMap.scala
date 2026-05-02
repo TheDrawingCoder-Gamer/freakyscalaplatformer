@@ -1,8 +1,12 @@
-import upickle.default.*
-import collection.mutable as mut
-import collection.immutable as immut
+package gay.menkissing
+
+import gay.menkissing.World.getClass
 import gay.menkissing.common.math as gaymath
+import gay.menkissing.engine.{GayBasic, GayObject, GayState}
+import upickle.default.*
+
 import java.io.InputStreamReader
+import scala.collection.{immutable as immut, mutable as mut}
 
 case class LDtkRawFieldInstance(__identifier: String, __value: ujson.Value, __type: String)
     derives ReadWriter
@@ -45,6 +49,9 @@ case class TileMap(width: Int, height: Int, items: collection.mutable.ArrayBuffe
 object TileMap {
 
     def fromMap(map: collection.AbstractMap[(Int, Int), Int]): TileMap = {
+        if (map.isEmpty) {
+            return TileMap(0, 0, collection.mutable.ArrayBuffer())
+        }
         val width = map.keys.maxBy(_._1)._1 + 1
         val height = map.keys.maxBy(_._2)._2 + 1
 
@@ -102,14 +109,15 @@ object Entity {
 
 
 case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: immut.ArraySeq[Entity], playerStarts: List[gaymath.Point]) {
-    def addEntities(to: mut.ListBuffer[GayObject]): Unit = {
+    def addEntities(to: GayState): Unit = {
         for (entity <- entities) {
             // TODO : )
             entity.data match {
-                case EntityData.Destructible => to.addOne {
+                case EntityData.Destructible => to.add {
                     val dest = new Destructible()
                     dest.x = entity.x
                     dest.y = entity.y
+                    dest.zIndex = entity.y
                     dest
                 }
             }
@@ -193,7 +201,7 @@ object World {
         World(worldStart, levels.toList, tiles)
     }
     def load(): World = {
-        val map = ujson.InputStreamParser.transform[LDtkMap](getClass.getResourceAsStream("map.ldtk"), upickle.default.reader[LDtkMap])
+        val map = ujson.InputStreamParser.transform[LDtkMap](getClass.getResourceAsStream("/map.ldtk"), upickle.default.reader[LDtkMap])
         fromLDtk(map)
     }
 }

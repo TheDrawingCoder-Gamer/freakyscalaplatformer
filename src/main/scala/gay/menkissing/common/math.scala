@@ -153,3 +153,11 @@ case class Rect(x: Int, y: Int, w: Int, h: Int) {
 
 }
 
+def clamp[V](value: V, min: V, max: V)(using pord: PartialOrdering[V]): V = {
+  if (pord.lt(value, min))
+    min
+  else if (pord.gt(value, max))
+    max
+  else
+    value
+}

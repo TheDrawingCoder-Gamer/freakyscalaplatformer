@@ -1,3 +1,5 @@
+package gay.menkissing.engine
+
 import org.lwjgl.*
 import org.lwjgl.glfw.*
 import org.lwjgl.opengl.*
@@ -12,6 +14,7 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
+import gay.menkissing.draw
 
 inline def renderWidth: Int = draw.renderWidth
 inline def renderHeight: Int = draw.renderHeight
@@ -30,16 +33,18 @@ class Game {
   if (window == NULL)
     throw new RuntimeException("Failed to create GLFW Window")
 
+  val input1 = Input(0)
+  
   glfwSetKeyCallback(window, (window, key, scancode, action, mods) => {
     if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
       glfwSetWindowShouldClose(window, true)
   })
   glfwSetJoystickCallback((jid: Int, event: Int) => {
     if (event == GLFW_CONNECTED) {
-      gamestate.input1.gamepadId = jid
+      input1.gamepadId = jid
     } else if (event == GLFW_DISCONNECTED) {
-      if (jid == gamestate.input1.gamepadId) {
-        gamestate.input1.gamepadId = -1
+      if (jid == input1.gamepadId) {
+        input1.gamepadId = -1
       }
     }
   })
@@ -59,7 +64,7 @@ class Game {
       window,
       (vidmode.width() - pwidth.get(0)) / 2,
       (vidmode.height() - pheight.get(0)) / 2
-      )
+    )
 
   }
   glfwMakeContextCurrent(window)
@@ -69,9 +74,7 @@ class Game {
   GL.createCapabilities()
 
   val gamemanager = new GameManager()
-  val gamestate = new GameState(gamemanager)
-
-  gamemanager.switchState(gamestate)
+  
   val timer = new SyncTimer()
   def loop(): Unit = {
 
@@ -122,9 +125,6 @@ object Game {
         windowWidth = math.round(windowHeight * aspectRatio).toInt
         paddingLeft = (width - windowWidth) / 2
 
+  
+  lazy val instance = new Game()
 }
-
-lazy val game = new Game()
-
-@main def main() =
-  game.run()

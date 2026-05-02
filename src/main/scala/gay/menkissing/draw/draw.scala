@@ -1,4 +1,4 @@
-package draw
+package gay.menkissing.draw
 
 import org.joml.Matrix4f
 import org.lwjgl.opengl.*
@@ -29,11 +29,29 @@ val fullRenderHeight = renderHeight * 6
 case class GraphicsContext(stack: MatrixStack, camera: gay.menkissing.common.math.Point)
 
 trait Renderable {
-  def render(matrices: MatrixStack): Unit
+  def render(): Unit
 }
 
 // objects r lazy, but once referenced all their fields r forced
 object Shaders {
+  private val textVertexShader = {
+    val source =
+      """#version 330 core
+        |layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
+        |out vec2 texCoord;
+        |
+        |uniform mat4 projection;
+        |
+        |void main()
+        |{
+        |    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+        |    texCoord = vertex.zw;
+        |}""".stripMargin
+    val shader = glCreateShader(GL_VERTEX_SHADER)
+    glShaderSource(shader, source)
+    glCompileShader(shader)
+    shader
+  }
   private val defaultVertexShader = {
     val freakyCode =
       """
@@ -69,7 +87,11 @@ object Shaders {
 
       void main()
       {
-        FragColor = texture(ourTexture, texCoord);
+        vec4 texel = texture(ourTexture, texCoord);
+        if (texel.a < 0.5) {
+          discard;
+        }
+        FragColor = texel;
       }
       """
     val shader = glCreateShader(GL_FRAGMENT_SHADER)
@@ -97,6 +119,27 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
+  private val textFragmentShader = {
+    val source =
+      """
+        |#version 330 core
+        |in vec2 texCoord;
+        |out vec4 color;
+        |
+        |uniform sampler2D text;
+        |uniform vec4 textColor;
+        |
+        |void main()
+        |{
+        |    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, texCoord).r);
+        |    color = textColor * sampled;
+        |}
+        |""".stripMargin
+    val shader = glCreateShader(GL_FRAGMENT_SHADER)
+    glShaderSource(shader, source)
+    glCompileShader(shader)
+    shader
+  }
   val defaultProgram = {
     val program = glCreateProgram()
     glAttachShader(program, defaultVertexShader)
@@ -111,10 +154,19 @@ object Shaders {
     glLinkProgram(program)
     program
   }
+  val textProgram = {
+    val program = glCreateProgram()
+    glAttachShader(program, textVertexShader)
+    glAttachShader(program, textFragmentShader)
+    glLinkProgram(program)
+    program
+  }
   
   glDeleteShader(defaultVertexShader)
   glDeleteShader(defaultFragmentShader)
   glDeleteShader(solidColorFragmentShader)
+  glDeleteShader(textVertexShader)
+  glDeleteShader(textFragmentShader)
 }
 
 object VertInstances {
@@ -448,7 +500,10 @@ def filledRect(): Unit = {
 }
 
 
-case class Color(r: Float, g: Float, b: Float, a: Float)
+final case class Color(r: Float, g: Float, b: Float, a: Float) {
+  def bind(targetUL: Int): Unit =
+    glUniform4f(targetUL, r, g, b, a)
+}
 
 object Color {
   def fromRGBA8(r: Int, g: Int, b: Int, a: Int) = new Color(r.toFloat / 255, g.toFloat / 255, b.toFloat / 255, a.toFloat / 255)
@@ -466,7 +521,7 @@ def setSolidColor(color: Color, transform: Matrix4f): Unit = {
   glUseProgram(Shaders.solidColorProgram)
   bindTransform(Shaders.solidColorProgram, transform, new Matrix4f())
   val colorLoc = glGetUniformLocation(Shaders.solidColorProgram, "solidColor")
-  glUniform4f(colorLoc, color.r, color.g, color.b, color.a)
+  color.bind(colorLoc)
 }
 
 
@@ -487,4 +542,51 @@ def bindTransform(shader: Int, transform: Matrix4f, texTransform: Matrix4f): Uni
     glUniformMatrix4fv(texTransformLoc, false,  texTransform.get(fb2))
 
   }
+}
+
+def drawText(text: String, color: Color, transform: Matrix4f): Unit = {
+  glUseProgram(Shaders.textProgram)
+  val projectionLocation = glGetUniformLocation(Shaders.textProgram, "projection")
+  Using.resource(stackPush()) { stack =>
+    val fb = stack.mallocFloat(16)
+    glUniformMatrix4fv(projectionLocation, false, transform.get(fb))
+  }
+
+  val colorLoc = glGetUniformLocation(Shaders.textProgram, "textColor")
+  color.bind(colorLoc)
+  glActiveTexture(GL_TEXTURE0)
+  glBindVertexArray(TextRendering.textVAO)
+
+  var x = 0
+  var y = TextRendering.textSize
+
+  text.foreach { c =>
+    if (c == '\n') {
+      x = 0
+      y += TextRendering.textSize
+    } else
+      TextRendering.characters.get(c.toInt).foreach { glyph =>
+        val xpos = x + glyph.bearing.x
+        val ypos = y - glyph.bearing.y
+        val w = glyph.size.x
+        val h = glyph.size.y
+        glBindTexture(GL_TEXTURE_2D, glyph.texID)
+        glBindBuffer(GL_ARRAY_BUFFER, TextRendering.textVBO)
+        Using(stackPush()) { stack =>
+          val buf = stack.floats(
+            xpos    , ypos, 0f, 0f,
+            xpos + w,     ypos,     1f, 0f,
+            xpos, ypos + h,     0f, 1f,
+            xpos + w,     ypos + h, 1f, 1f,
+          )
+          glBufferSubData(GL_ARRAY_BUFFER, 0, buf)
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
+        x += (glyph.advance >> 6)
+      }
+  }
+
+  glBindVertexArray(0)
+  glBindTexture(GL_TEXTURE_2D, 0)
 }

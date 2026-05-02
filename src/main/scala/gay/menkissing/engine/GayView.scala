@@ -1,17 +1,20 @@
+package gay.menkissing.engine
+
+import gay.menkissing.common.math as gaymath
+import gay.menkissing.draw
 import org.joml.Matrix4f
-import org.lwjgl.opengl.*
 import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.opengl.*
+import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL13.*
+import org.lwjgl.opengl.GL15.*
+import org.lwjgl.opengl.GL20.*
+import org.lwjgl.opengl.GL30.*
 import org.lwjgl.system.*
-import MemoryUtil.*
-import MemoryStack.*
-import GL11.*
-import GL13.*
-import GL15.*
-import GL30.*
-import GL20.*
+import org.lwjgl.system.MemoryStack.*
+import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
-import gay.menkissing.common.math as gaymath
 
 
 class GayView(val width: Int, val height: Int) {
@@ -52,10 +55,16 @@ class GayView(val width: Int, val height: Int) {
 
   }
 
-  def setupRender(): Unit = {
+  def clear(): Unit = {
+    hotswapTo()
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+  }
+  
+  // WE are constantly changing our frame buffer
+  def hotswapTo(): Unit = {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
     glViewport(0, 0, width, height)
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    
   }
 
   def finalizeRender(): Unit = {
@@ -78,8 +87,7 @@ class GayView(val width: Int, val height: Int) {
   
   def makeStack(): draw.MatrixStack = {
     val stack = draw.MatrixStack()
-    stack.ortho(0, worldSize.x, worldSize.y, 0, -1, 1)
-    stack.translate(-viewPos.x, -viewPos.y, 0)
+    stack.ortho(0, worldSize.x, worldSize.y, 0, Short.MinValue.toFloat, Short.MaxValue.toFloat)
     stack
   }
 }

@@ -1,3 +1,5 @@
+package gay.menkissing.engine
+
 import org.lwjgl.glfw.GLFW.glfwGetTime
 
 object SyncTimer {
