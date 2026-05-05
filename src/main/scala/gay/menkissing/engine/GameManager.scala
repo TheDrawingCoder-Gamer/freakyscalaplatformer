@@ -58,7 +58,11 @@ class GameManager() {
     }
 
     val pixelCam = GayView(draw.renderWidth, draw.renderHeight)
+    // Our pixel game shouldn't be using any blended textures.
+    pixelCam.useDepth = true
     val fullCam = GayView(draw.fullRenderWidth, draw.fullRenderHeight)
+    // Our UI camera on the other hand, _will_ be using translucency.
+    fullCam.useDepth = false
 
     cameras.add(pixelCam)
     cameras.add(fullCam, defaultDrawTarget = false)

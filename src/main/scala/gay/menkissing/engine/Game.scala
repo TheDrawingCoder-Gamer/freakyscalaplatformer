@@ -72,6 +72,7 @@ class Game {
   glfwShowWindow(window)
 
   GL.createCapabilities()
+  val (_) = GayG.alManager
 
   val gamemanager = new GameManager()
   

@@ -23,14 +23,10 @@ val renderWidth = 320
 val renderHeight = 180
 
 // size of assets that are fullscreen
-val fullRenderWidth = renderWidth * 6
-val fullRenderHeight = renderHeight * 6
+val fullRenderWidth = renderWidth * 5
+val fullRenderHeight = renderHeight * 5
 
 case class GraphicsContext(stack: MatrixStack, camera: gay.menkissing.common.math.Point)
-
-trait Renderable {
-  def render(): Unit
-}
 
 // objects r lazy, but once referenced all their fields r forced
 object Shaders {
@@ -75,7 +71,28 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
-  private val defaultFragmentShader = {
+  private val blendFragmentShader = {
+    val freakyCode =
+      """
+      #version 330 core
+      out vec4 FragColor;
+      
+      in vec2 texCoord;
+
+      uniform sampler2D ourTexture;
+
+      void main()
+      {
+        vec4 texel = texture(ourTexture, texCoord);
+        FragColor = texel;
+      }
+      """
+    val shader = glCreateShader(GL_VERTEX_SHADER)
+    glShaderSource(shader, freakyCode)
+    glCompileShader(shader)
+    shader
+  }
+  private val cutoutFragmentShader = {
     val freakyCode =
       """
       #version 330 core
@@ -140,30 +157,21 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
-  val defaultProgram = {
+  private def makeProgram(vertex: Int, fragment: Int): Int =
     val program = glCreateProgram()
-    glAttachShader(program, defaultVertexShader)
-    glAttachShader(program, defaultFragmentShader)
+    glAttachShader(program, vertex)
+    glAttachShader(program, fragment)
     glLinkProgram(program)
     program
-  }
-  val solidColorProgram = {
-    val program = glCreateProgram()
-    glAttachShader(program, defaultVertexShader)
-    glAttachShader(program, solidColorFragmentShader)
-    glLinkProgram(program)
-    program
-  }
-  val textProgram = {
-    val program = glCreateProgram()
-    glAttachShader(program, textVertexShader)
-    glAttachShader(program, textFragmentShader)
-    glLinkProgram(program)
-    program
-  }
+  
+  val cutoutProgram = makeProgram(defaultVertexShader, cutoutFragmentShader)
+  val blendProgram = makeProgram(defaultVertexShader, blendFragmentShader)
+  val solidColorProgram = makeProgram(defaultVertexShader, solidColorFragmentShader)
+  val textProgram = makeProgram(textVertexShader, textFragmentShader)
   
   glDeleteShader(defaultVertexShader)
-  glDeleteShader(defaultFragmentShader)
+  glDeleteShader(cutoutFragmentShader)
+  glDeleteShader(blendFragmentShader)
   glDeleteShader(solidColorFragmentShader)
   glDeleteShader(textVertexShader)
   glDeleteShader(textFragmentShader)
@@ -303,83 +311,6 @@ class SimpleVerts(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Vert(vertBu
   }
 }
 
-class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int) extends Closeable {
-  var closed = false
-  stbi_set_flip_vertically_on_load(false)
-  val texture = glGenTextures()
-
-  buf.flip()
-  val (width, height) = Using.resource(stackPush()) { stack =>
-    val xp = stack.callocInt(1)
-    val yp = stack.callocInt(1)
-    val channelsFilep = stack.callocInt(1)
-
-    val res = stbi_load_from_memory(buf, xp, yp, channelsFilep, 4)
-
-    if (res != null) {
-       glBindTexture(GL_TEXTURE_2D, texture)
-       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xp.get(0), yp.get(0), 0, GL_RGBA, GL_UNSIGNED_BYTE, res)
-
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, interpMin)
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, interpMag)
-
-
-       stbi_image_free(res)
-    } else {
-      throw new RuntimeException("Couldn't load image")
-    }
-  
-    (xp.get(0), yp.get(0))
-  }
-
-  def close(): Unit = {
-    if (!closed) {
-      closed = true
-      glDeleteTextures(texture)
-    }
-  }
-
-  def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
-    glUseProgram(Shaders.defaultProgram)
-    glBindVertexArray(squareVertices.VAO)
-    glActiveTexture(GL_TEXTURE0)
-    glBindTexture(GL_TEXTURE_2D, texture)
-    
-    val transformLoc = glGetUniformLocation(Shaders.defaultProgram, "transform")
-    val texTransformLoc = glGetUniformLocation(Shaders.defaultProgram, "texTransform")
-
-    val transTexMtx = Matrix4f()
-    transTexMtx.translate(sx.toFloat / width, sy.toFloat / height, 0)
-    transTexMtx.scale(sw.toFloat / width, sh.toFloat/ height, 0)
-    Using.resource(stackPush()) { stack => 
-      val fb = stack.mallocFloat(16)
-
-      glUniformMatrix4fv(transformLoc, false, matrices.get(fb))
-
-      val fb2 = stack.mallocFloat(16)
-
-      glUniformMatrix4fv(texTransformLoc, false, transTexMtx.get(fb2))
-
-    }
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
-  }
-  def draw(matrices: Matrix4f, segment: TextureSegment): Unit = {
-    draw(matrices, segment.x, segment.y, segment.w, segment.h)
-  }
-  def draw(matrices: Matrix4f): Unit = draw(matrices, 0, 0, width, height)
-}
-
-object Texture {
-  def apply(input: InputStream, min_filter: Int = GL_NEAREST, mag_filter: Int = GL_NEAREST): Texture = {
-    // God hates us all
-    val bytes = input.readAllBytes()
-    val buf = memAlloc(bytes.length)
-    buf.put(bytes)
-    val tex = new Texture(buf, min_filter, mag_filter)
-    memFree(buf)
-    tex
-  }
-}
 
 class MatrixStack extends Matrix4f {
   val stack = Stack[Matrix4f]()
@@ -435,7 +366,7 @@ class MatrixStack extends Matrix4f {
 }
 
 
-case class TextureSegment(x: Int, y: Int, w: Int, h: Int)
+final case class TextureSegment(x: Int, y: Int, w: Int, h: Int)
 
 class TextureAtlas(val texture: Texture) extends mut.HashMap[String, TextureSegment]() {
 
@@ -497,24 +428,6 @@ def rect(): Unit = {
 def filledRect(): Unit = {
   glBindVertexArray(squareVertices.VAO)
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
-}
-
-
-final case class Color(r: Float, g: Float, b: Float, a: Float) {
-  def bind(targetUL: Int): Unit =
-    glUniform4f(targetUL, r, g, b, a)
-}
-
-object Color {
-  def fromRGBA8(r: Int, g: Int, b: Int, a: Int) = new Color(r.toFloat / 255, g.toFloat / 255, b.toFloat / 255, a.toFloat / 255)
-  def fromHex(hex: Int): Color = {
-    val r = (hex & 0x00FF0000) >>> 16
-    val g = (hex & 0x0000FF00) >>> 8
-    val b = (hex & 0x000000FF)
-    val a = (hex & 0xFF000000) >>> 24
-    fromRGBA8(r, g, b, a)
-
-  }
 }
 
 def setSolidColor(color: Color, transform: Matrix4f): Unit = {

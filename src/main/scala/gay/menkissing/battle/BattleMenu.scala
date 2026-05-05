@@ -1,40 +1,71 @@
 package gay.menkissing.battle
 
-import gay.menkissing.battle.BattleMenu.BattleOption
+import gay.menkissing.Textures
+import gay.menkissing.battle.BattleMenu.{BattleOption, SkillBattleOption}
 import gay.menkissing.engine.*
-import gay.menkissing.draw.Color
+import gay.menkissing.draw.{Color, TextureAtlas}
+import gay.menkissing.engine.group.{GayObjectContainer, GayTypedObjectContainer}
 
-class BattleMenu extends GayTypedObjectContainer[GayObject] {
-  val attackOption = BattleOption("Attack")
-  attackOption.hovered = true
-  add(attackOption)
-  val skillOption = BattleOption("Persona")
-  add(skillOption)
-  val itemOption = BattleOption("Item")
-  add(itemOption)
+abstract class BattleMenu extends GayTypedObjectContainer[GayObject] {
+  val options: Vector[BattleOption]
 
-  val options = Vector(attackOption, skillOption, itemOption)
-  options.zipWithIndex.foreach { (x, i) =>
-    x.y = BattleMenu.optionHeight * i
-  }
+
+  protected def updateOptions(): Unit =
+    options.zipWithIndex.foreach { (x, i) =>
+      x.y = BattleMenu.optionHeight * i
+    }
+    editSelection(0)
+
+
+  // Where will this menu loop scrolling?
+  def length: Int = options.length
   var selectedOption: Int = 0
 
   def editSelection(by: Int): Unit =
     options(selectedOption).hovered = false
     selectedOption += by
-    selectedOption = math.floorMod(selectedOption, options.length)
+    selectedOption = math.floorMod(selectedOption, length)
     options(selectedOption).hovered = true
 
-  override def update(): Unit =
-    super.update()
 
-    if (GayG.input.dPadDown.justPressed) {
-      editSelection(1)
-    } else if (GayG.input.dPadUp.justPressed) {
-      editSelection(-1)
+}
+
+class RootBattleMenu extends BattleMenu {
+  val attackOption = BattleOption(L10n.instance.named("menu.battle.attack"))
+  attackOption.hovered = true
+  add(attackOption)
+  val skillOption = BattleOption(L10n.instance.named("menu.battle.skills"))
+  add(skillOption)
+  val itemOption = BattleOption(L10n.instance.named("menu.battle.item"))
+  add(itemOption)
+
+  val options: Vector[BattleOption] = Vector(attackOption, skillOption, itemOption)
+
+  updateOptions()
+
+}
+
+class SkillBattleMenu(val root: RootBattleMenu) extends BattleMenu {
+  val options: Vector[SkillBattleOption] = Vector.fill[SkillBattleOption](8)(SkillBattleOption())
+  options.foreach(this.add)
+
+
+  var nSkills: Int = 1
+
+  override def length: Int = nSkills
+  updateOptions()
+
+  def loadSkills(skills: List[Skill]): Unit = {
+    options.foreach(_.skill = None)
+    skills.zipWithIndex.foreach { (skill, i) =>
+      assert(i < 8)
+      // TODO: display elem graphic
+      options(i).skill = Some(skill)
+      this.nSkills = i
     }
-
-
+    this.nSkills += 1
+    editSelection(0)
+  }
 
 }
 
@@ -43,7 +74,9 @@ object BattleMenu {
   val secondaryColor: Color = Color.fromHex(0xFF25283D)
   val optionHeight: Int = 42
 
-  final class BattleOption(text: String) extends GayTypedObjectContainer[GayObject] {
+  val elementAtlas = TextureAtlas.splitBySize(Textures.preload.elements, 32, 32)
+
+  class BattleOption(text: String) extends GayTypedObjectContainer[GayObject] {
     private var _hovered: Boolean = false
 
     val txt = GayText(text, 32, secondaryColor)
@@ -65,6 +98,46 @@ object BattleMenu {
         txt.color = secondaryColor
         rectGraphic.color = primaryColor
       }
+
+  }
+
+  class SkillBattleOption extends BattleOption("") {
+    txt.x += 32
+    private var _skill: Option[Skill] = None
+    val skillCostTxt = GayText("", 32, secondaryColor)
+
+    def skill: Option[Skill] = _skill
+    def skill_=(v: Option[Skill]): Unit =
+      _skill = v
+      v match
+        case Some(value) =>
+          skillIcon.visible = true
+          skillGraphic.current = value.element.ordinal.toString
+          txt.text = value.name
+        case None =>
+          skillIcon.visible = false
+          txt.text = ""
+
+    val skillGraphic = GayAtlas(elementAtlas, "0")
+    val skillIcon = GaySprite(skillGraphic)
+    skillIcon.visible = false
+    skillIcon.x = 10
+    skillIcon.y = 4
+
+    add(skillIcon)
+
+  }
+
+  
+  final class RoundedRectangle(var radius: Int,
+                               override var graphicalWidth: Int,
+                               override var graphicalHeight: Int) extends GayObject {
+    override def render(): Unit = {
+      Game.instance.gamemanager.cameras.camList.withFilter(this.viewableOnCamera)
+    }
+  }
+
+  final class SkillCostPreview extends GayObjectContainer {
 
   }
 }

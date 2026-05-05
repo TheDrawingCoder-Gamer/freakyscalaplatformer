@@ -1,4 +1,6 @@
 package gay.menkissing.engine
+package group
+
 
 class GayTypedContainer[T <: GayBasic] extends GayTypedGroup[T] {
   override def onMemberAdded(member: T): Unit =

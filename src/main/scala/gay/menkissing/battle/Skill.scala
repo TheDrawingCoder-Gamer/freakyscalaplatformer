@@ -2,9 +2,11 @@ package gay.menkissing
 package battle
 
 import SkillCost.RealSkillCost
+
 import scala.math.Ordering.Double.IeeeOrdering
 import scala.util.boundary
 import common.math as gaymath
+import gay.menkissing.engine.L10n
 
 enum SkillTarget(val multiTarget: Boolean = false) {
   case Self
@@ -106,16 +108,21 @@ object SkillCost {
 
 final case class SkillAilmentInfo(ailment: Ailment, ailmentRate: Int)
 final case class Skill
-( name: String,
+( id: String,
   basePower: Int,
   element: Element,
   accuracy: Int,
   cost: SkillCost,
   target: SkillTarget,
+  strengthBased: Boolean = false,
   ailment: Option[SkillAilmentInfo] = None,
   personaSkill: Boolean = true,
-  criticalRate: Int = 0
+  criticalRate: Int = 0,
+  buffDebuffs: BuffDebuffs = BuffDebuffs(),
+  hits: Range = 1 to 1
 ) {
+  def name: String = L10n.instance.named(id)
+
   override def toString: String = s"$name ${element.name} root $basePower target $target"
   def displayStr(caster: Fighter): String = s"$name ${element.name} \u221A $basePower target $target cost ${cost.skillCost(caster)}"
   def validTarget(battle: Battle, target: Fighter): Boolean = {
@@ -210,7 +217,7 @@ final case class Skill
         }
       }
       val startedKnockdown = target.isDown
-      val offenseStat = if (element.physical) caster.stats.strength else caster.stats.magic
+      val offenseStat = if (strengthBased) caster.stats.strength else caster.stats.magic
       val affinity = target.resistances.get(element).getOrElse(ResistLevel.Normal)
       val resistLevelMultiplier = affinity match {
         case ResistLevel.Weak => {
@@ -297,277 +304,4 @@ final case class Skill
     }
     SkillResult()
   }
-}
-
-object Skills {
-  val bash = Skill("Bash", 50, Element.Strike, 90, SkillCost.HP(7), SkillTarget.Foe)
-
-  val vacuumSlash = Skill("Vacuum Slash", 85, Element.Slash, accuracy = 90, SkillCost.HP(14), SkillTarget.AllFoes)
-
-  private trait MagicPowers {
-    val weak: Int
-    val medium: Int
-    val heavy: Int
-    val severeSingle: Int
-    val severeMulti: Int
-  }
-  private object magicPower extends MagicPowers {
-    val weak: Int = 40
-    val medium: Int = 100
-    val heavy: Int = 220
-    val severeSingle = 600
-    val severeMulti = 450
-  }
-  private object strongMagicPower extends MagicPowers {
-    val weak: Int = 60
-    val medium: Int = 140
-    val heavy: Int = 350
-    val severeSingle = 650
-    val severeMulti = 500
-  }
-  private object magicCost {
-    trait SkillCosts {
-      val weak: SkillCost
-      val medium: SkillCost
-      val heavy: SkillCost
-      val severe: SkillCost
-    }
-    trait SkillCostGrouping {
-      val single: SkillCosts
-      val multi: SkillCosts
-    }
-    object normal extends SkillCostGrouping {
-      object single extends SkillCosts {
-        val weak = SkillCost.SP(4)
-        val medium = SkillCost.SP(8)
-        val heavy = SkillCost.SP(14)
-        val severe = SkillCost.SP(46)
-      }
-
-      object multi extends SkillCosts {
-        val weak = SkillCost.SP(10)
-        val medium = SkillCost.SP(16)
-        val heavy = SkillCost.SP(24)
-        val severe = SkillCost.SP(48)
-      }
-    }
-
-    object cheap extends SkillCostGrouping {
-      object single extends SkillCosts {
-        val weak = SkillCost.SP(3)
-        val medium = SkillCost.SP(6)
-        val heavy = SkillCost.SP(12)
-        val severe = SkillCost.SP(40)
-      }
-      object multi extends SkillCosts {
-        val weak = SkillCost.SP(8)
-        val medium = SkillCost.SP(14)
-        val heavy = SkillCost.SP(24)
-        val severe = SkillCost.SP(44)
-      }
-    }
-    object expensive extends SkillCostGrouping {
-      object single extends SkillCosts {
-        val weak = SkillCost.SP(4)
-        val medium = SkillCost.SP(8)
-        val heavy = SkillCost.SP(15)
-        val severe = SkillCost.SP(48)
-      }
-      object multi extends SkillCosts {
-        val weak = SkillCost.SP(10)
-        val medium = SkillCost.SP(16)
-        val heavy = SkillCost.SP(25)
-        val severe = SkillCost.SP(50)
-      }
-    }
-  }
-  private object instakillCost {
-    object single {
-      val weak = SkillCost.SP(6)
-      val strong = SkillCost.SP(14)
-    }
-    object multi {
-      val weak = SkillCost.SP(12)
-      val strong = SkillCost.SP(26)
-    }
-  }
-  private object magicAccuracy {
-    val single = 99
-    val singleSevere = 97
-    val multi = 95
-  }
-  private object magicAilmentRate {
-    val single = 15
-    val singleSevere = 60
-    val multi = 10
-    val multiSevere = 35
-  }
-  private enum MagicStrength {
-    case Weak, Medium, Heavy, Severe
-  }
-  private enum MagicCost {
-    case Cheap, Normal, Expensive
-  }
-  private def ailmentMagic(name: String, strength: MagicStrength, ailment: Ailment, element: Element, multi: Boolean): Skill = {
-    val power = strength match {
-      case MagicStrength.Weak => magicPower.weak
-      case MagicStrength.Medium => magicPower.medium
-      case MagicStrength.Heavy => magicPower.heavy
-      case MagicStrength.Severe => if (multi) magicPower.severeMulti else magicPower.severeSingle
-    }
-    val cost = {
-      val costGroup = if (multi) magicCost.normal.multi else magicCost.normal.single
-      strength match {
-        case MagicStrength.Weak => costGroup.weak
-        case MagicStrength.Medium => costGroup.medium
-        case MagicStrength.Heavy => costGroup.heavy
-        case MagicStrength.Severe => costGroup.severe
-      }
-    }
-    val accuracy = if (multi) magicAccuracy.multi else if (strength == MagicStrength.Severe) magicAccuracy.singleSevere else magicAccuracy.single
-    val ailmentRate =
-      if (multi) {
-        if (strength == MagicStrength.Severe)
-          magicAilmentRate.multiSevere
-        else
-          magicAilmentRate.multi
-      } else {
-        if (strength == MagicStrength.Severe) magicAilmentRate.singleSevere else magicAilmentRate.single
-      }
-    Skill(name, power, element, accuracy, cost, if (multi) SkillTarget.AllFoes else SkillTarget.Foe, Some(SkillAilmentInfo(ailment, ailmentRate)))
-  }
-  private def normalMagic(name: String, strength: MagicStrength, element: Element, multi:Boolean, cost: MagicCost = MagicCost.Normal, isStronger: Boolean = false): Skill = {
-    val strengthGroup = if (isStronger) strongMagicPower else magicPower
-    val power = strength match {
-      case MagicStrength.Weak => strengthGroup.weak
-      case MagicStrength.Medium => strengthGroup.medium
-      case MagicStrength.Heavy => strengthGroup.heavy
-      case MagicStrength.Severe => if (multi) strengthGroup.severeMulti else strengthGroup.severeSingle
-    }
-    val daCost = {
-      val costGroupGroup = cost match {
-        case MagicCost.Cheap => magicCost.cheap
-        case MagicCost.Normal => magicCost.normal
-        case MagicCost.Expensive => magicCost.expensive
-      }
-      val costGroup = if (multi) costGroupGroup.multi else costGroupGroup.single
-      strength match {
-        case MagicStrength.Weak => costGroup.weak
-        case MagicStrength.Medium => costGroup.medium
-        case MagicStrength.Heavy => costGroup.heavy
-        case MagicStrength.Severe => costGroup.severe
-      }
-    }
-    val accuracy = if (multi) magicAccuracy.multi else if (strength == MagicStrength.Severe) magicAccuracy
-      .singleSevere else magicAccuracy.single
-    Skill(name, power, element, accuracy, daCost, if (multi) SkillTarget.AllFoes else SkillTarget.Foe, None)
-  }
-  val agi = ailmentMagic("Agi", MagicStrength.Weak, Ailment.Burn, Element.Fire, false)
-  val agilao = ailmentMagic("Agilao", MagicStrength.Medium, Ailment.Burn, Element.Fire, false)
-  val agidyne = ailmentMagic("Agidyne", MagicStrength.Heavy, Ailment.Burn, Element.Fire, false)
-  val inferno = ailmentMagic("Inferno", MagicStrength.Severe, Ailment.Burn, Element.Fire, false)
-  val maragi = ailmentMagic("Maragi", MagicStrength.Weak, Ailment.Burn, Element.Fire, true)
-  val maragilao = ailmentMagic("Maragilao", MagicStrength.Medium, Ailment.Burn, Element.Fire, true)
-  val maragidyne = ailmentMagic("Maragidyne", MagicStrength.Heavy, Ailment.Burn, Element.Fire, true)
-  val blazingHell = ailmentMagic("Blazing Hell", MagicStrength.Severe, Ailment.Burn, Element.Fire, true)
-
-  val bufu = ailmentMagic("Bufu", MagicStrength.Weak, Ailment.Freeze, Element.Ice, false)
-  val bufula = ailmentMagic("Bufula", MagicStrength.Medium, Ailment.Freeze, Element.Ice, false)
-  val bufudyne = ailmentMagic("Bufudyne", MagicStrength.Heavy, Ailment.Freeze, Element.Ice, false)
-  val diamondDust = ailmentMagic("Diamond Dust", MagicStrength.Severe, Ailment.Freeze, Element.Ice, false)
-  val mabufu = ailmentMagic("Mabufu", MagicStrength.Weak, Ailment.Freeze, Element.Ice, true)
-  val mabufula = ailmentMagic("Mabufula", MagicStrength.Medium, Ailment.Freeze, Element.Ice, true)
-  val mabufudyne = ailmentMagic("Mabufudyne", MagicStrength.Heavy, Ailment.Freeze, Element.Ice, true)
-  val iceAge = ailmentMagic("Ice Age", MagicStrength.Severe, Ailment.Freeze, Element.Ice, true)
-
-  val zio = ailmentMagic("Zio", MagicStrength.Weak, Ailment.Shock, Element.Electric, false)
-  val zionga = ailmentMagic("Zionga", MagicStrength.Medium, Ailment.Shock, Element.Electric, false)
-  val ziodyne = ailmentMagic("Ziodyne", MagicStrength.Heavy, Ailment.Shock, Element.Electric, false)
-  val thunderReign = ailmentMagic("Thunder Reign", MagicStrength.Severe, Ailment.Shock, Element.Electric, false)
-  val mazio = ailmentMagic("Mazio", MagicStrength.Weak, Ailment.Shock, Element.Electric, true)
-  val mazionga = ailmentMagic("Mazionga", MagicStrength.Medium, Ailment.Shock, Element.Electric, true)
-  val maziodyne = ailmentMagic("Maziodyne", MagicStrength.Heavy, Ailment.Shock, Element.Electric, true)
-  val wildThunder = ailmentMagic("Wild Thunder", MagicStrength.Severe, Ailment.Shock, Element.Electric, true)
-
-  val garu = normalMagic("Garu", MagicStrength.Weak, Element.Wind, false, MagicCost.Cheap)
-  val garula = normalMagic("Garula", MagicStrength.Medium, Element.Wind, false, MagicCost.Cheap)
-  val garudyne = normalMagic("Garudyne", MagicStrength.Heavy, Element.Wind, false, MagicCost.Cheap)
-  val pantaRhei = normalMagic("Panta Rhei", MagicStrength.Severe, Element.Wind, false, MagicCost.Cheap)
-  val magaru = normalMagic("Magaru", MagicStrength.Weak, Element.Wind, true, MagicCost.Cheap)
-  val magarula = normalMagic("Magarula", MagicStrength.Medium, Element.Wind, true, MagicCost.Cheap)
-  val magarudyne = normalMagic("Magarudyne", MagicStrength.Heavy, Element.Wind, true, MagicCost.Cheap)
-  val vacuumWave = normalMagic("Vacuum Wave", MagicStrength.Severe, Element.Wind, true, MagicCost.Cheap)
-
-
-  val psi = normalMagic("Psi", MagicStrength.Weak, Element.Psy, false)
-  val psio = normalMagic("Psio", MagicStrength.Medium, Element.Psy, false)
-  val psiodyne = normalMagic("Psiodyne", MagicStrength.Heavy, Element.Psy, false)
-  val psychoForce = normalMagic("Psycho Force", MagicStrength.Severe, Element.Psy, false)
-  val mapsi = normalMagic("Mapsi", MagicStrength.Weak, Element.Psy, true)
-  val mapsio = normalMagic("Mapsio", MagicStrength.Medium, Element.Psy, true)
-  val mapsiodyne = normalMagic("Mapsiodyne", MagicStrength.Heavy, Element.Psy, true)
-  val psychoBlast = normalMagic("Psycho Blast", MagicStrength.Severe, Element.Psy, true)
-
-  val frei = normalMagic("Frei", MagicStrength.Weak, Element.Nuke, false)
-  val freila = normalMagic("Freila", MagicStrength.Medium, Element.Nuke, false)
-  val freidyne = normalMagic("Freidyne", MagicStrength.Heavy, Element.Nuke, false)
-  val atomicFlare = normalMagic("Atomic Flare", MagicStrength.Severe, Element.Nuke, false)
-  val mafrei = normalMagic("Mafrei", MagicStrength.Weak, Element.Nuke, true)
-  val mafreila = normalMagic("Mafreila", MagicStrength.Medium, Element.Nuke, true)
-  val mafreidyne = normalMagic("Mafreidyne", MagicStrength.Heavy, Element.Nuke, true)
-  val cosmicFlare = normalMagic("Cosmic Flare", MagicStrength.Severe, Element.Nuke, true)
-
-  val dia = Skill("Dia", 50, Element.Healing, 100, SkillCost.SP(3), SkillTarget.Ally)
-  val media = Skill("Media", 50, Element.Healing, 100, SkillCost.SP(7), SkillTarget.AllAllies)
-
-  val diarama = Skill("Diarama", 150, Element.Healing, 100, SkillCost.SP(8), SkillTarget.Ally)
-  val mediarama = Skill("Mediarama", 150, Element.Healing, 100, SkillCost.SP(16), SkillTarget.AllAllies)
-
-
-  def instakillSkill(name: String, isLight: Boolean, multi: Boolean, strongVersion: Boolean): Skill = {
-    val rateChance = if (strongVersion) 50 else 30
-    val element = if (isLight) Element.Light else Element.Dark
-    val ailment = if (isLight) Ailment.LightDeath else Ailment.DarkDeath
-    val cost =
-      if (strongVersion) {
-        if (multi) instakillCost.multi.strong else instakillCost.single.strong
-      } else {
-        if (multi) instakillCost.multi.weak else instakillCost.single.weak
-      }
-    Skill(name, 0, element, 100, cost, if (multi) SkillTarget.AllFoes else SkillTarget.Foe, ailment = Some(SkillAilmentInfo(ailment, rateChance)))
-  }
-
-  val kouha = normalMagic("Kouha", MagicStrength.Weak, Element.Light, false, MagicCost.Expensive, true)
-  val kouga = normalMagic("Kouga", MagicStrength.Medium, Element.Light, false, MagicCost.Expensive, true)
-  val kougaon = normalMagic("Kougaon", MagicStrength.Heavy, Element.Light, false, MagicCost.Expensive, true)
-  val makouha = normalMagic("Makouha", MagicStrength.Weak, Element.Light, true, MagicCost.Expensive, true)
-  val makouga = normalMagic("Makouga", MagicStrength.Medium, Element.Light, true, MagicCost.Expensive, true)
-  val makougaon = normalMagic("Makougaon", MagicStrength.Heavy, Element.Light, true, MagicCost.Expensive, true)
-  val hama = instakillSkill("Hama", true, false, false)
-  val hamaon = instakillSkill("Hamaon", true, false, true)
-  val mahama = instakillSkill("Mahama", true, true, false)
-  val mahamaon = instakillSkill("Mahamaon", true, true, true)
-
-  val eiha = normalMagic("Eiha", MagicStrength.Weak, Element.Dark, false, MagicCost.Expensive, true)
-  val eiga = normalMagic("Eiga", MagicStrength.Medium, Element.Dark, false, MagicCost.Expensive, true)
-  val eigaon = normalMagic("Eigaon", MagicStrength.Heavy, Element.Dark, false, MagicCost.Expensive, true)
-  val maeiha = normalMagic("Maeiha", MagicStrength.Weak, Element.Dark, true, MagicCost.Expensive, true)
-  val maeiga = normalMagic("Maeiga", MagicStrength.Medium, Element.Dark, true, MagicCost.Expensive, true)
-  val maeigaon = normalMagic("Maeigaon", MagicStrength.Heavy, Element.Dark, true, MagicCost.Expensive, true)
-  val mudo = instakillSkill("Mudo", false, false, false)
-  val mudoon = instakillSkill("Mudoon", false, false, true)
-  val mamudo = instakillSkill("Mamudo", false, true, false)
-  val mamudoon = instakillSkill("Mamudoon", false, true, true)
-
-  private def forceApplyAilment(ailment: Ailment, element: Element = Element.Ailment): Skill =
-    Skill(s"DEBUG: Apply $ailment", 0, element, 100, SkillCost.SP(1), SkillTarget.Foe, Some(SkillAilmentInfo(ailment, 100)))
-  val forceApplyBurn = forceApplyAilment(Ailment.Burn, Element.Fire)
-  val forceApplyFreeze = forceApplyAilment(Ailment.Freeze, Element.Ice)
-  val forceApplyShock = forceApplyAilment(Ailment.Shock, Element.Electric)
-  val forceApplyDizzy = forceApplyAilment(Ailment.Dizzy)
-  val forceApplySleep = forceApplyAilment(Ailment.Sleep)
-  val forceApplyForget = forceApplyAilment(Ailment.Forget)
-  val forceApplyFear = forceApplyAilment(Ailment.Fear)
-  val forceApplyRage = forceApplyAilment(Ailment.Rage)
-  val forceApplyBrainwash = forceApplyAilment(Ailment.Brainwash)
 }

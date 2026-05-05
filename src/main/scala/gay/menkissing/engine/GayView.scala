@@ -15,6 +15,7 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
+import gay.menkissing.draw.Color
 
 
 class GayView(val width: Int, val height: Int) {
@@ -47,6 +48,15 @@ class GayView(val width: Int, val height: Int) {
    * How large the camera is in world size. Defaults to texture size. 
   */
   var worldSize = gaymath.Point(width, height)
+
+  // Should we draw using the depth buffer, or should we always draw things on top of each other in order?
+  var useDepth: Boolean = false
+
+  /**
+    * What color should we clear to?
+    * By default, transparent.
+    */
+  var clearColor: Color = Color.fromHex(0x00000000)
   
   def free(): Unit = {
     glDeleteFramebuffers(framebuffer)
@@ -57,6 +67,7 @@ class GayView(val width: Int, val height: Int) {
 
   def clear(): Unit = {
     hotswapTo()
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
   }
   
@@ -64,13 +75,18 @@ class GayView(val width: Int, val height: Int) {
   def hotswapTo(): Unit = {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
     glViewport(0, 0, width, height)
+    if (useDepth) {
+      glEnable(GL_DEPTH_TEST)
+    } else {
+      glDisable(GL_DEPTH_TEST)
+    }
     
   }
 
   def finalizeRender(): Unit = {
     import draw.Shaders
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
-    glUseProgram(Shaders.defaultProgram)
+    glUseProgram(Shaders.cutoutProgram)
     glBindVertexArray(draw.screenVertices.VAO)
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, framebufferTex)
@@ -79,7 +95,7 @@ class GayView(val width: Int, val height: Int) {
 
     val mat = Matrix4f()
 
-    draw.bindTransform(Shaders.defaultProgram, renderMatrix, mat)
+    draw.bindTransform(Shaders.cutoutProgram, renderMatrix, mat)
     
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)

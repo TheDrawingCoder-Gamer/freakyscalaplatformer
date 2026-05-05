@@ -1,8 +1,9 @@
 package gay.menkissing.engine
+package group
 
 import scala.collection.mutable
 
-class GayTypedObjectContainer[T <: GayObject] extends GayTypedObjectGroup[T] {
+open class GayTypedObjectContainer[T <: GayObject] extends GayTypedObjectGroup[T] {
   override val group: GayTypedContainer[T] = GayTypedObjectContainer.ObjectContainer[T](this)
 
   override def render(): Unit = {
@@ -28,3 +29,5 @@ object GayTypedObjectContainer {
     override def cameras: SpriteCameras = parentSprite.cameras
   }
 }
+
+type GayObjectContainer = GayTypedObjectContainer[GayObject]

@@ -24,7 +24,7 @@ object Player {
 
 }
 
-class Player(val input: Input) extends GaySprite(GayAtlas(Player.playerAtlas, "1")), draw.Renderable {
+class Player(val input: Input) extends GaySprite(GayAtlas(Player.playerAtlas, "1")) {
     var state: Player.State = Player.State.Normal 
     var tJumpGrace: Int = 0
     var jumpGraceY: Int = 0

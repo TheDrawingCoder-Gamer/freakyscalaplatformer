@@ -17,21 +17,13 @@ class Input(val player: Byte) {
   val dPadLeft = Input.BindSlot()
   val dPadRight = Input.BindSlot()
   val confirm = Input.BindSlot()
-  var inputAction: Boolean = false
-  var inputActionPressed: Byte = 0
-  var inputGun: Boolean = false
-  var inputGunPressed: Byte = 0
+  val cancel = Input.BindSlot()
   var axisXValue: Byte = 0
   var axisXTurned: Boolean = false
   var axisYValue: Byte = 0
   var axisYTurned: Boolean = false
   var gamepadId: Int = -1
   
-  def consumeActionPress(): Boolean = {
-    val res = inputActionPressed > 0
-    inputActionPressed = 0
-    res
-  }
   def update(): Unit = Using.resource(stackPush()) { stack =>
     val prevX: Byte = axisXValue
     val prevY: Byte = axisYValue
@@ -49,10 +41,8 @@ class Input(val player: Byte) {
         (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_DOWN) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_DOWN) != 0
     val confirm = 
         (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_Z) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_A) != 0
-    val action = 
+    val cancel = 
         (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_X) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_X) != 0
-    val gun = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_C) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_B) != 0
     if (left) {
         if (right) {
             if (axisXTurned) {
@@ -106,30 +96,7 @@ class Input(val player: Byte) {
     this.dPadRight.update(right)
     this.dPadUp.update(up)
     this.confirm.update(confirm)
-
-    if (action && !inputAction) {
-        inputActionPressed = 8;
-    } else {
-        if (action) {
-            if (inputActionPressed > 0)
-                inputActionPressed = (inputActionPressed - 1).toByte;
-        } else {
-            inputActionPressed = 0;
-        }
-    }
-    inputAction = action;
-
-    if (gun && !inputGun) {
-        inputGunPressed = 8;
-    } else {
-        if (gun) {
-            if (inputGunPressed > 0)
-                inputGunPressed = (inputGunPressed - 1).toByte;
-        } else {
-            inputGunPressed = 0;
-        }
-    }
-    inputGun = gun;
+    this.cancel.update(cancel)
     
   }
 

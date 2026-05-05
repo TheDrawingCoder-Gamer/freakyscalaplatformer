@@ -9,6 +9,8 @@ trait Fighter {
   def maxSP: Int
   var sp: Int
 
+  def level: Int
+
   def infoStr: String = s"${name} HP: ${health}/$maxHP SP: $sp/$maxSP ${if (isDown) "Downed" else ""}"
 
   def printInfo(): Unit = println(infoStr)
@@ -19,6 +21,7 @@ trait Fighter {
 
   def resistances: ResistElementMap
   def ailmentResistances: ResistAilmentMap
+  def skillPotentials: PotentialElementMap
 
   var isDown: Boolean
 
@@ -93,18 +96,20 @@ trait Fighter {
 class BasicFighter(val name: String,
                    val maxHP: Int,
                    val maxSP: Int,
+                   val level: Int,
                    val stats: Stats,
-                   val goodSkills: List[Skill],
+                   val skills: List[Skill],
                    val basicAffinity: Element = Element.Slash,
                    val basicPower: Int,
                    val resistances: ResistElementMap,
-                   val ailmentResistances: ResistAilmentMap = ResistAilmentMap()) extends Fighter {
+                   val ailmentResistances: ResistAilmentMap = ResistAilmentMap(),
+                   val skillPotentials: PotentialElementMap = PotentialElementMap()) extends Fighter {
   var health: Int = maxHP
   var sp: Int = maxSP
   var isDown: Boolean = false
 
   val basicAttackSkill: Skill = Skill("Basic Attack", basicPower / 2, basicAffinity, 90, SkillCost.HP(0), SkillTarget.Foe, personaSkill = false)
-  def skills: List[Skill] = goodSkills.prepended(basicAttackSkill)
+
 }
 
 

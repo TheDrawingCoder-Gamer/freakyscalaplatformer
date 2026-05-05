@@ -12,23 +12,27 @@ enum AilmentResist(val multiplier: Double) {
   case Resist extends AilmentResist(multiplier = 0.5)
   case NullAilment extends AilmentResist(multiplier = 0.0)
 }
-enum Ailment(val technicals: List[Element] = List(), val actionable: Boolean = true, val expireTimer: Range, val associatedWith: Option[Element] = None) {
-  case Freeze extends Ailment(technicals = List(Element.Nuke, Element.Pierce, Element.Strike, Element.Slash), actionable =  false, expireTimer = 1 to 1, associatedWith = Some(Element.Ice))
-  case Burn extends Ailment(technicals = List(Element.Nuke, Element.Wind), expireTimer = 2 to 4, associatedWith = Some(Element.Fire))
-  case Shock extends Ailment(technicals = List(Element.Nuke, Element.Pierce, Element.Strike, Element.Slash), actionable = false, expireTimer = 1 to 1, associatedWith = Some(Element.Electric))
+enum Ailment(val id: String, val technicals: List[Element] = List(), val actionable: Boolean = true, val expireTimer: Range, val associatedWith: Option[Element] = None) {
+  case Freeze extends Ailment(id = "freeze", technicals = List(Element.Nuke, Element.Pierce, Element.Strike, Element.Slash), actionable =  false, expireTimer = 1 to 1, associatedWith = Some(Element.Ice))
+  case Burn extends Ailment(id = "burn", technicals = List(Element.Nuke, Element.Wind), expireTimer = 2 to 4, associatedWith = Some(Element.Fire))
+  case Shock extends Ailment(id = "shock", technicals = List(Element.Nuke, Element.Pierce, Element.Strike, Element.Slash), actionable = false, expireTimer = 1 to 1, associatedWith = Some(Element.Electric))
 
-  case Dizzy extends Ailment(technicals = Element.damageElements, expireTimer = 1 to 2)
-  case Sleep extends Ailment(technicals = Element.damageElements, actionable = false, expireTimer = 5 to 10)
+  case Dizzy extends Ailment(id = "dizzy", technicals = Element.damageElements, expireTimer = 1 to 2)
+  case Sleep extends Ailment(id = "sleep", technicals = Element.damageElements, actionable = false, expireTimer = 5 to 10)
 
-  case Forget extends Ailment(technicals = List(Element.Psy, Element.Electric), expireTimer = 3 to 5)
-  case Confuse extends Ailment(technicals = List(Element.Psy, Element.Wind, Element.Pierce), actionable = false, expireTimer = 2 to 4)
-  case Fear extends Ailment(technicals = List(Element.Psy, Element.Ice), expireTimer = 2 to 4)
-  case Rage extends Ailment(technicals = List(Element.Psy, Element.Fire), actionable = false, expireTimer = 2 to 4)
-  case Brainwash extends Ailment(technicals = List(Element.Psy, Element.Light), actionable = false, expireTimer = 1 to 4)
+  case Forget extends Ailment(id = "forget", technicals = List(Element.Psy, Element.Electric), expireTimer = 3 to 5)
+  case Confuse extends Ailment(id = "confuse", technicals = List(Element.Psy, Element.Wind, Element.Pierce), actionable = false, expireTimer = 2 to 4)
+  case Fear extends Ailment(id = "fear", technicals = List(Element.Psy, Element.Ice), expireTimer = 2 to 4)
+  case Rage extends Ailment(id = "rage", technicals = List(Element.Psy, Element.Fire), actionable = false, expireTimer = 2 to 4)
+  case Brainwash extends Ailment(id = "brainwash", technicals = List(Element.Psy, Element.Bless), actionable = false, expireTimer = 1 to 4)
+  case Despair extends Ailment(id = "despair", technicals = List(Element.Psy, Element.Curse), expireTimer = 1 to 4)
 
   // ???
-  case LightDeath extends Ailment(actionable = false, expireTimer = 0 to 0, associatedWith = Some(Element.Light))
-  case DarkDeath extends Ailment(actionable = false, expireTimer = 0 to 0, associatedWith = Some(Element.Dark))
+  // These aren't ever actually applied, and just kill upon application.
+  // They are defined as ailments so bosses, for example, can defend against them
+  // explicitly without having to resist light or dark
+  case LightDeath extends Ailment(id = "lightdeath", actionable = false, expireTimer = 0 to 0, associatedWith = Some(Element.Bless))
+  case DarkDeath extends Ailment(id = "darkdeath", actionable = false, expireTimer = 0 to 0, associatedWith = Some(Element.Curse))
 
   def processApplication(battle: Battle, target: SidedFighter): Unit = {
 
@@ -110,7 +114,7 @@ enum Ailment(val technicals: List[Element] = List(), val actionable: Boolean = t
   }
 }
 
-case class AilmentMap[V]
+final case class AilmentMap[V]
 ( freeze: V,
   burn: V,
   shock: V,
@@ -121,6 +125,7 @@ case class AilmentMap[V]
   fear: V,
   rage: V,
   brainwash: V,
+  despair: V,
   lightDeath: V,
   darkDeath: V
 ) {
@@ -136,6 +141,7 @@ case class AilmentMap[V]
       case Ailment.Fear => fear
       case Ailment.Rage => rage
       case Ailment.Brainwash => brainwash
+      case Ailment.Despair => despair
       case Ailment.LightDeath => lightDeath
       case Ailment.DarkDeath => darkDeath
   }
@@ -151,12 +157,13 @@ case class AilmentMap[V]
       case Ailment.Fear => copy(fear = value)
       case Ailment.Rage => copy(rage = value)
       case Ailment.Brainwash => copy(brainwash = value)
+      case Ailment.Despair => copy(despair = value)
       case Ailment.LightDeath => copy(lightDeath = value)
       case Ailment.DarkDeath => copy(darkDeath = value)
   }
 }
 
-case class DefaultAilmentMap[V](default: V) {
+final case class DefaultAilmentMap[V](default: V) {
   def apply
   ( freeze: V = default,
     burn: V = default,
@@ -168,8 +175,9 @@ case class DefaultAilmentMap[V](default: V) {
     fear: V = default,
     rage: V = default,
     brainwash: V = default,
+    despair: V = default,
     lightDeath: V = default,
-    darkDeath: V = default): AilmentMap[V] = AilmentMap(freeze, burn, shock, dizzy, sleep, forget, confuse, fear, rage, brainwash, lightDeath, darkDeath)
+    darkDeath: V = default): AilmentMap[V] = AilmentMap(freeze, burn, shock, dizzy, sleep, forget, confuse, fear, rage, brainwash, despair, lightDeath, darkDeath)
 }
 
 val ResistAilmentMap = DefaultAilmentMap[AilmentResist](AilmentResist.Normal)

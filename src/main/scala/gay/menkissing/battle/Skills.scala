@@ -1,0 +1,319 @@
+package gay.menkissing.battle
+
+object Skills {
+  private def phys(rawId: String, cost: SkillCost, multi: Boolean, basePower: Int, critRate: Int, accuracy: Int, hits: Range = 1 to 1, ailment: Option[SkillAilmentInfo] = None, buffDebuffs: BuffDebuffs = BuffDebuffs())(using element: Element): Skill =
+    val target = if (multi) SkillTarget.AllFoes else SkillTarget.Foe
+    Skill(s"skill.${element.id}.$rawId", basePower, element, accuracy, cost, target, strengthBased = true, criticalRate = critRate, ailment = ailment, buffDebuffs = buffDebuffs, hits = hits)
+
+  object strike {
+    private given Element = Element.Strike
+
+    val bash = phys("bash", SkillCost.HP(7), false, 120, 0, 90)
+    val giganticFist = phys("gigantic_fist", SkillCost.HP(14), false, 190, 20, 85)
+    val swiftStrike = phys("swift_strike", SkillCost.HP(15), true, 70, 0, 80, hits = 1 to 2)
+    val kidneySmash = phys("kidney_smash", SkillCost.HP(9), false, 70, 20, 92, buffDebuffs = BuffDebuffs(attackDown = true))
+    val assaultDive = phys("assault_dive", SkillCost.HP(11), false, 110, 20, 88)
+    val armorSplitter = phys("armor_splitter", SkillCost.HP(12), false, 110, 0, 92, buffDebuffs = BuffDebuffs(defenseDown = true))
+    val herculeanStrike = phys("herculean_strike", SkillCost.HP(17), true, 150, 0, 85)
+    val heatWave = phys("heat_wave", SkillCost.HP(20), true, 200, 0, 90)
+    val akashaArts = phys("akasha_arts", SkillCost.HP(22), true, 170, 20, 88, hits = 1 to 2)
+    val godsHand = phys("gods_hand", SkillCost.HP(25), false, 300, 20, 88)
+  }
+
+  object slash {
+    private given Element = Element.Slash
+
+    val powerSlash = phys("power_slash", SkillCost.HP(7), false, 70, 0, 92)
+    val tempestSlash = phys("tempest_slash", SkillCost.HP(14), false, 70, 0, 95, hits = 1 to 4)
+    val fatalEnd = phys("fatal_end", SkillCost.HP(10), false, 110, 0, 95, ailment = Some(SkillAilmentInfo(Ailment.Fear, 35)))
+    // TODO: Add special guillotine flag to pass
+    val guillotine = phys("guillotine", SkillCost.HP(12), false, 110, 0, 95)
+    val legSlice = phys("leg_slice", SkillCost.HP(12), false, 110, 0, 95, buffDebuffs = BuffDebuffs(agilityDown = true))
+    val braveBlade = phys("brave_blade", SkillCost.HP(20), false, 250, 20, 90)
+    val vacuumSlash = phys("vacuum_slash", SkillCost.HP(14), true, 90, 0, 90)
+    val bladeOfFury = phys("blade_of_fury", SkillCost.HP(17), true, 60, 0, 80, hits = 2 to 4)
+    val deathbound = phys("deathbound", SkillCost.HP(19), true, 180, 20, 85)
+    val vorpalBlade = phys("vorpal_blade", SkillCost.HP(22), true, 240, 0, 92)
+    val heavensBlade = phys("heavens_blade", SkillCost.HP(18), false, 220, 30, 90)
+    val crossSlash = phys("cross_slash", SkillCost.HP(18), false, 120, 0, 99, hits = 2 to 2)
+    val masquerade = phys("masquerade", SkillCost.HP(22), true, 140, 30, 90, hits = 2 to 2)
+  }
+
+  object pierce {
+    private given Element = Element.Pierce
+
+    val arrowRain = phys("arrow_rain", SkillCost.HP(16), true, 50, 0, 85, hits = 1 to 4)
+    // TODO: special "bonus to downed" flag
+    val vileAssault = phys("vile_assault", SkillCost.HP(15), false, 200, 0, 95)
+    val cruelAttack = phys("cruel_attack", SkillCost.HP(13), false, 140, 0, 95)
+    val primalForce = phys("primal_force", SkillCost.HP(21), false, 240, 20, 92)
+    val torrentShot = phys("torrent_shot", SkillCost.HP(11), false, 50, 20, 85, hits = 2 to 4)
+    val holyArrow = phys("holy_arrow", SkillCost.HP(8), false, 80, 0, 92, ailment = Some(SkillAilmentInfo(Ailment.Forget, 35)))
+    val myriadArrows = phys("myriad_arrows", SkillCost.HP(19), true, 60, 0, 88, hits = 2 to 5)
+    val oneShotKill = phys("one_shot_kill", SkillCost.HP(17), false, 150, 30, 90)
+    val pralaya = phys("pralaya", SkillCost.HP(23), true, 240, 20, 95, ailment = Some(SkillAilmentInfo(Ailment.Fear, 50)))
+
+  }
+
+
+  private trait MagicPowers {
+    val weak: Int
+    val medium: Int
+    val heavy: Int
+    val severe: Int
+  }
+
+  private trait SingleMagicPowers extends MagicPowers {
+    val bloody: Int
+  }
+
+  private trait MagicPowersGroup {
+    val single: SingleMagicPowers
+    val multi: MagicPowers
+  }
+
+  private object magicPowers extends MagicPowersGroup {
+    object single extends SingleMagicPowers {
+      val weak: Int = 130
+      val medium: Int = 160
+      val bloody: Int = 200
+      val heavy: Int = 215
+      val severe: Int = 265
+    }
+
+    object multi extends MagicPowers {
+      val weak: Int = 95
+      val medium: Int = 120
+      val heavy: Int = 155
+      val severe: Int = 185
+    }
+  }
+
+  private object strongMagicPowers extends MagicPowersGroup {
+    object single extends SingleMagicPowers {
+      val weak: Int = 140
+      val medium: Int = 175
+      val heavy: Int = 265
+      val bloody: Int = 220
+      val severe: Int = 330
+    }
+
+    object multi extends MagicPowers {
+      val weak: Int = 105
+      val medium: Int = 135
+      val heavy: Int = 185
+      val severe: Int = 250
+    }
+  }
+
+
+
+  private object magicCost {
+    trait SkillCosts {
+      val weak: SkillCost
+      val medium: SkillCost
+      val heavy: SkillCost
+      val severe: SkillCost
+    }
+    trait SingleSkillCosts extends SkillCosts {
+      val bloody: SkillCost
+    }
+
+    trait SkillCostGrouping {
+      val single: SingleSkillCosts
+      val multi: SkillCosts
+    }
+
+    object normal extends SkillCostGrouping {
+      object single extends SingleSkillCosts {
+        val weak = SkillCost.SP(10)
+        val medium = SkillCost.SP(20)
+        val bloody = SkillCost.HP(25)
+        val heavy = SkillCost.SP(35)
+        val severe = SkillCost.SP(50)
+      }
+
+      object multi extends SkillCosts {
+        val weak = SkillCost.SP(15)
+        val medium = SkillCost.SP(30)
+        val heavy = SkillCost.SP(50)
+        val severe = SkillCost.SP(75)
+      }
+    }
+
+    object cheap extends SkillCostGrouping {
+      object single extends SingleSkillCosts {
+        val weak = SkillCost.SP(8)
+        val medium = SkillCost.SP(18)
+        val bloody = SkillCost.HP(20)
+        val heavy = SkillCost.SP(32)
+        val severe = SkillCost.SP(45)
+      }
+
+      object multi extends SkillCosts {
+        val weak = SkillCost.SP(13)
+        val medium = SkillCost.SP(25)
+        val heavy = SkillCost.SP(45)
+        val severe = SkillCost.SP(70)
+      }
+    }
+
+    object expensive extends SkillCostGrouping {
+      object single extends SingleSkillCosts {
+        val weak = SkillCost.SP(15)
+        val medium = SkillCost.SP(25)
+        val bloody = SkillCost.HP(30)
+        val heavy = SkillCost.SP(55)
+        val severe = SkillCost.SP(75)
+      }
+
+      object multi extends SkillCosts {
+        val weak = SkillCost.SP(25)
+        val medium = SkillCost.SP(40)
+        val heavy = SkillCost.SP(80)
+        val severe = SkillCost.SP(140)
+      }
+    }
+  }
+
+
+  private object magicAccuracy {
+    val single = 99
+    val bloody = 96
+    val singleSevere = 98
+    val multi = 95
+  }
+
+  private trait AilmentRates {
+    val single: Int
+    val singleBloody: Int
+    val singleSevere: Int
+    val multi: Int
+    val multiSevere: Int
+  }
+
+  private object magicAilmentRate extends AilmentRates {
+    val single = 15
+    val singleBloody = 30
+    val singleSevere = 60
+    val multi = 15
+    val multiSevere = 35
+  }
+
+  // instakills only apply when hitting weakness, so this isnt THAT insane
+  // to add in addition to high damage
+  private object instakillRates extends AilmentRates {
+    val single = 40
+    val singleBloody = 45
+    val singleSevere = 50
+    val multi = 30
+    val multiSevere = 40
+  }
+
+  // Suprised it lets me do private[Skills] but not complaining :joy:
+  class PlainMagic private[Skills] (
+                  element: Element,
+                  powers: MagicPowersGroup,
+                  costs: magicCost.SkillCostGrouping,
+                  associatedAilment: Option[Ailment],
+                  ailmentRates: AilmentRates = magicAilmentRate
+                  ) {
+    def getAilment(rate: Int): Option[SkillAilmentInfo] =
+      associatedAilment.map { x =>
+        SkillAilmentInfo(x, rate)
+      }
+
+    val weak = Skill(s"skill.${element.id}.weak", powers.single.weak, element, magicAccuracy.single, costs.single.weak, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
+    val medium = Skill(s"skill.${element.id}.medium", powers.single.medium, element, magicAccuracy.single, costs.single.medium, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
+    val heavy = Skill(s"skill.${element.id}.heavy", powers.single.heavy, element, magicAccuracy.single, costs.single.heavy, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
+    val bloody = Skill(s"skill.${element.id}.bloody", powers.single.bloody, element, magicAccuracy.bloody, costs.single.bloody, SkillTarget.Foe, ailment = getAilment(ailmentRates.singleBloody))
+    val severe = Skill(s"skill.${element.id}.severe", powers.single.severe, element, magicAccuracy.singleSevere, costs.single.severe, SkillTarget.Foe, ailment = getAilment(ailmentRates.singleSevere))
+    val weakMulti = Skill(s"skill.${element.id}.weak_multi", powers.multi.weak, element, magicAccuracy.multi, costs.multi.weak, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
+    val mediumMulti = Skill(s"skill.${element.id}.medium_multi", powers.multi.medium, element, magicAccuracy.multi, costs.multi.medium, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
+    val heavyMulti = Skill(s"skill.${element.id}.heavy_multi", powers.multi.heavy, element, magicAccuracy.multi, costs.multi.heavy, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
+    val severeMulti = Skill(s"skill.${element.id}.severe_multi", powers.multi.severe, element, magicAccuracy.multi, costs.multi.severe, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multiSevere))
+  }
+
+  val fire = new PlainMagic(Element.Fire, magicPowers, magicCost.normal, Some(Ailment.Burn))
+  val ice = new PlainMagic(Element.Ice, magicPowers, magicCost.normal, Some(Ailment.Freeze))
+  val electric = new PlainMagic(Element.Electric, magicPowers, magicCost.normal, Some(Ailment.Shock))
+  val wind = new PlainMagic(Element.Wind, magicPowers, magicCost.cheap, None)
+  val psy = new PlainMagic(Element.Psy, magicPowers, magicCost.normal, None)
+  val nuke = new PlainMagic(Element.Nuke, magicPowers, magicCost.normal, None)
+  val bless = new PlainMagic(Element.Bless, strongMagicPowers, magicCost.expensive, Some(Ailment.LightDeath), instakillRates)
+  val curse = new PlainMagic(Element.Curse, strongMagicPowers, magicCost.expensive, Some(Ailment.DarkDeath), instakillRates)
+
+
+
+  object healing {
+    val weak = Skill("skill.healing.heal.weak", 50, Element.Healing, 100, SkillCost.SP(3), SkillTarget.Ally)
+    val weakMulti = Skill("skill.healing.heal.weak_multi", 40, Element.Healing, 100, SkillCost.SP(7), SkillTarget.AllAllies)
+
+    val medium = Skill("skill.healing.heal.medium", 160, Element.Healing, 100, SkillCost.SP(8), SkillTarget.Ally)
+    val mediumMulti = Skill("skill.healing.heal.medium_multi", 140, Element.Healing, 100, SkillCost.SP(16), SkillTarget.AllAllies)
+  }
+  
+  object almighty {
+    val medium = Skill("skill.almighty.medium", 125, Element.Almighty, 95, SkillCost.SP(40), SkillTarget.AllFoes)
+    val heavy = Skill("skill.almighty.heavy", 160, Element.Almighty, 95, SkillCost.SP(70), SkillTarget.AllFoes)
+    val severe = Skill("skill.almighty.severe", 190, Element.Almighty, 95, SkillCost.SP(120), SkillTarget.AllFoes)
+  }
+
+
+
+  
+
+  private final case class TargetingPair(single: Int, multi: Int)
+
+  private object AilmentCosts {
+    val single = SkillCost.SP(10)
+    val multi = SkillCost.SP(25)
+  }
+
+  private val lowAilmentRates = TargetingPair(60, 45)
+  private val highAilmentRates = TargetingPair(70, 50)
+
+  class AilmentSkills private[Skills](
+                                     ailment: Ailment,
+                                     rates: TargetingPair
+                                     ) {
+    val single: Skill = Skill(
+      s"skill.ailment.${ailment.id}",
+      0,
+      Element.Ailment,
+      100,
+      AilmentCosts.single,
+      SkillTarget.Foe,
+      ailment = Some(SkillAilmentInfo(ailment, rates.single))
+    )
+    val multi: Skill = Skill(
+      s"skill.ailment.${ailment.id}_multi",
+      0,
+      Element.Ailment,
+      100,
+      AilmentCosts.multi,
+      SkillTarget.AllFoes,
+      ailment = Some(SkillAilmentInfo(ailment, rates.multi))
+    )
+  }
+
+  val fear = new AilmentSkills(Ailment.Fear, lowAilmentRates)
+  val rage = new AilmentSkills(Ailment.Rage, highAilmentRates)
+  val confuse = new AilmentSkills(Ailment.Confuse, lowAilmentRates)
+  val despair = new AilmentSkills(Ailment.Despair, highAilmentRates)
+  val forget = new AilmentSkills(Ailment.Forget, highAilmentRates)
+
+  private def forceApplyAilment(ailment: Ailment, element: Element = Element.Ailment): Skill =
+    Skill(s"skill.debug.${ailment.id}", 0, element, 100, SkillCost.SP(1), SkillTarget
+      .Foe, false, Some(SkillAilmentInfo(ailment, 100)))
+
+  val forceApplyBurn = forceApplyAilment(Ailment.Burn, Element.Fire)
+  val forceApplyFreeze = forceApplyAilment(Ailment.Freeze, Element.Ice)
+  val forceApplyShock = forceApplyAilment(Ailment.Shock, Element.Electric)
+  val forceApplyDizzy = forceApplyAilment(Ailment.Dizzy)
+  val forceApplySleep = forceApplyAilment(Ailment.Sleep)
+  val forceApplyForget = forceApplyAilment(Ailment.Forget)
+  val forceApplyFear = forceApplyAilment(Ailment.Fear)
+  val forceApplyRage = forceApplyAilment(Ailment.Rage)
+  val forceApplyBrainwash = forceApplyAilment(Ailment.Brainwash)
+}

@@ -1,4 +1,5 @@
 package gay.menkissing.engine
+package group
 
 // TODO: collisions (Im not doing that :joy:)
 open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
@@ -70,3 +71,5 @@ open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
   override def render(): Unit =
     group.render()
 }
+
+type GayObjectGroup = GayTypedObjectGroup[GayObject]
