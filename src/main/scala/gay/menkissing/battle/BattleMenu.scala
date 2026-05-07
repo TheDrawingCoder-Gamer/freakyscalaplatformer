@@ -21,6 +21,8 @@ abstract class BattleMenu extends GayTypedObjectContainer[GayObject] {
   def length: Int = options.length
   var selectedOption: Int = 0
 
+  def currentSelected: BattleOption = options(selectedOption)
+
   def editSelection(by: Int): Unit =
     options(selectedOption).hovered = false
     selectedOption += by
@@ -45,10 +47,19 @@ class RootBattleMenu extends BattleMenu {
 
 }
 
+object RootBattleMenu {
+  object Options {
+    val Attack = 0
+    val Skill = 1
+    val Item = 2
+  }
+}
+
 class SkillBattleMenu(val root: RootBattleMenu) extends BattleMenu {
   val options: Vector[SkillBattleOption] = Vector.fill[SkillBattleOption](8)(SkillBattleOption())
   options.foreach(this.add)
 
+  override def currentSelected: SkillBattleOption =  options(selectedOption)
 
   var nSkills: Int = 1
 

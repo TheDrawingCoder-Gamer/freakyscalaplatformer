@@ -12,4 +12,9 @@ trait PRNG {
     val v = randomIn(c.indices)
     c(v)
   }
+  final def randomInD(low: Double, hi: Double): Double = {
+    val diff = hi - low
+    val r = random() * diff
+    r + low
+  }
 }

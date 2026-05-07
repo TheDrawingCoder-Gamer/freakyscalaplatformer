@@ -7,6 +7,7 @@ import scala.math.Ordering.Double.IeeeOrdering
 import scala.util.boundary
 import common.math as gaymath
 import gay.menkissing.engine.L10n
+import gay.menkissing.common.PRNG
 
 enum SkillTarget(val multiTarget: Boolean = false) {
   case Self
@@ -26,58 +27,30 @@ enum SkillTarget(val multiTarget: Boolean = false) {
       case SkillTarget.All => SkillTarget.All
     }
 }
-case class SkillResult(wasKnockedDown: Boolean = false)
+
+enum SkillResult {
+  case Missed
+  // Remove once finished!!!
+  case Unknown
+}
 
 enum SkillEffect {
   case Damage(power: Int)
-  case Healing(power: Int)
+  case Healing(percent: Double, power: Int)
   case ReduceHPTo1
   case ExactDamage(by: Int)
   case ExactHealing(by: Int)
   case HealAllHP
+  case RevivePercent(percent: Int)
+  case DamagePercentRemaining(percent: Int)
+  case DamagePercentFull(percent: Int)
+  case ApplyAilment(ailment: Ailment, rate: Int)
+  case CureStatus
+  case Group(ls: List[SkillEffect])
+  // everything is defined in flags
+  case None
 }
 
-object AppliedBuffs {
-  opaque type AppliedBuffs = Int
-
-  extension (self: AppliedBuffs) {
-    def attackUp: Boolean = (self & 0x0001) != 0
-    def withAttackUp(b: Boolean): AppliedBuffs = (self & ~0x0001) | (if (b) 1 else 0)
-
-    def attackDown: Boolean = (self & 0x0002) != 0
-    def withAttackDown(b: Boolean): AppliedBuffs = (self & ~0x0002) | ((if (b) 1 else 0) << 1)
-
-    def agilityUp: Boolean = (self & 0x0004) != 0
-    def withAgilityUp(b: Boolean): AppliedBuffs = (self & ~0x0004) | ((if (b) 1 else 0) << 2)
-
-    def agilityDown: Boolean = (self & 0x0008) != 0
-    def withAgilityDown(b: Boolean): AppliedBuffs = (self & ~0x0008) | ((if (b) 1 else 0) << 3)
-
-    def defenseUp: Boolean = (self & 0x0010) != 0
-    def withDefenseUp(b: Boolean): AppliedBuffs = (self & ~0x0010) | ((if (b) 1 else 0) << 4)
-
-    def defenseDown: Boolean = (self & 0x0020) != 0
-    def withDefenseDown(b: Boolean): AppliedBuffs = (self & ~0x0020) | ((if (b) 1 else 0) << 5)
-
-    def powerCharge: Boolean = (self & 0x0040) != 0
-    def withPowerCharge(b: Boolean): AppliedBuffs = (self & ~0x0040) | ((if (b) 1 else 0) << 6)
-
-    def mindCharge: Boolean = (self & 0x0080) != 0
-    def withMindCharge(b: Boolean): AppliedBuffs = (self & ~0x0080) | ((if (b) 1 else 0) << 7)
-
-    def dekaja: Boolean = (self & 0x0100) != 0
-    def withDekaja(b: Boolean): AppliedBuffs = (self & ~0x0100) | ((if (b) 1 else 0) << 8)
-
-    def dekunda: Boolean = (self & 0x0200) != 0
-    def withDekunda(b: Boolean): AppliedBuffs = (self & ~0x0200) | ((if (b) 1 else 0) << 9)
-
-    def rebellion: Boolean = (self & 0x0400) != 0
-    def withRebellion(b: Boolean): AppliedBuffs = (self & ~0x0400) | ((if (b) 1 else 0) << 10)
-
-    def revolution: Boolean = (self & 0x0800) != 0
-    def withRevolution(b: Boolean): AppliedBuffs = (self & ~0x0800) | ((if (b) 1 else 0) << 11)
-  }
-}
 
 enum SkillCost {
   case HP(percent: Int)
@@ -107,27 +80,69 @@ object SkillCost {
 }
 
 final case class SkillAilmentInfo(ailment: Ailment, ailmentRate: Int)
+
+object Skill {
+  val maxAccuracy: Int = 255
+  
+  def damagingAilment(
+    id: String,
+    basePower: Int,
+    element: Element,
+    accuracy: Int,
+    cost: SkillCost,
+    target: SkillTarget,
+    ailment: SkillAilmentInfo,
+    strengthBased: Boolean = false,
+    personaSkill: Boolean = true,
+    criticalRate: Int = 0,
+    buffDebuffs: AppliedBuffs = AppliedBuffs.empty,
+    specialFlags: SpecialSkillFlags = SpecialSkillFlags.empty,
+    hits: Range = 1 to 1
+  ): Skill =
+    val damageEff = SkillEffect.Damage(basePower)
+    val effect = SkillEffect.Group(List(damageEff, SkillEffect.ApplyAilment(ailment.ailment, ailment.ailmentRate)))
+    Skill(id, effect, element, accuracy, cost, target, strengthBased, personaSkill, criticalRate, buffDebuffs, specialFlags, hits)
+
+  def damaging(
+    id: String,
+    basePower: Int,
+    element: Element,
+    accuracy: Int,
+    cost: SkillCost,
+    target: SkillTarget,
+    strengthBased: Boolean = false,
+    ailment: Option[SkillAilmentInfo] = None,
+    personaSkill: Boolean = true,
+    criticalRate: Int = 0,
+    buffDebuffs: AppliedBuffs = AppliedBuffs.empty,
+    specialFlags: SpecialSkillFlags = SpecialSkillFlags.empty,
+    hits: Range = 1 to 1
+  ): Skill =
+    val damageEff = SkillEffect.Damage(basePower)
+    val effect =
+      ailment match
+        case Some(a) => SkillEffect.Group(List(damageEff, SkillEffect.ApplyAilment(a.ailment, a.ailmentRate)))
+        case None => damageEff
+    Skill(id, effect, element, accuracy, cost, target, strengthBased, personaSkill, criticalRate, buffDebuffs, specialFlags, hits)
+}
 final case class Skill
 ( id: String,
-  basePower: Int,
+  effect: SkillEffect,
   element: Element,
   accuracy: Int,
   cost: SkillCost,
   target: SkillTarget,
   strengthBased: Boolean = false,
-  ailment: Option[SkillAilmentInfo] = None,
   personaSkill: Boolean = true,
   criticalRate: Int = 0,
-  buffDebuffs: BuffDebuffs = BuffDebuffs(),
+  buffDebuffs: AppliedBuffs = AppliedBuffs.empty,
+  specialFlags: SpecialSkillFlags = SpecialSkillFlags.empty,
   hits: Range = 1 to 1
 ) {
   def name: String = L10n.instance.named(id)
 
-  override def toString: String = s"$name ${element.name} root $basePower target $target"
-  def displayStr(caster: Fighter): String = s"$name ${element.name} \u221A $basePower target $target cost ${cost.skillCost(caster)}"
-  def validTarget(battle: Battle, target: Fighter): Boolean = {
-    target.health > 0
-  }
+  override def toString: String = s"$name ${element.name} root $effect target $target"
+  def displayStr(caster: Fighter): String = s"$name ${element.name} \u221A $effect target $target cost ${cost.skillCost(caster)}"
   def canAffordSkill(caster: Fighter, spendsHP: Boolean = true): Boolean = {
     cost.skillCost(caster) match {
       case SkillCost.RealSkillCost.HP(by) => caster.health > by
@@ -135,173 +150,119 @@ final case class Skill
       case SkillCost.RealSkillCost.SP(by) => caster.sp >= by
     }
   }
-  def processSkillCost(caster: Fighter, canSpendHP: Boolean = true): Unit = {
-    cost.skillCost(caster) match
-      case RealSkillCost.HP(by) => {
-        if (canSpendHP) {
-          assert(by < caster.health)
-          caster.health -= by
-        }
-      }
-      case RealSkillCost.SP(by) => {
-        assert(by <= caster.sp)
-        caster.sp -= by
-      }
-  }
-  def runIntro(caster: Fighter): Unit = {
-    println(s"${caster.name} cast $name!")
-  }
-  def runAll(battle: Battle, caster: SidedFighter, targets: List[SidedFighter]): List[SkillResult] = {
-    assert(target.multiTarget)
-    runIntro(caster.fighter)
-    targets.filter(it => this.validTarget(battle, it.fighter)).map(it => runCore(battle, caster, it))
-  }
-  def run(battle: Battle, caster: SidedFighter, target: SidedFighter): SkillResult = {
-    assert(!this.target.multiTarget)
-    runIntro(caster.fighter)
-    runCore(battle, caster, target)
-  }
-  def calcAccuracy(battle: Battle, caster: Fighter, target: Fighter): Boolean = {
-    if (this.accuracy >= 100)
-      return true
-    val skillHit = this.accuracy.toDouble
-    val accuracy = skillHit * (caster.stats.agility.toDouble + 200.0) / (target.stats.agility.toDouble + 200.0)
-    // TODO: apply buff
-    // TODO: apply passive skills
-    val goodAccuracy = gaymath.clamp(accuracy, 50.0, 99.0).toInt
-    val randomVal = (math.random() * 100).toInt
-    randomVal < goodAccuracy
-  }
-  def applyAilment(battle:Battle, daCaster: SidedFighter, daTarget: SidedFighter): Option[SkillResult] = {
-    val target = daTarget.fighter
-    val caster = daCaster.fighter
-    val startedKnockdown = caster.isDown
-    ailment match {
-      case Some(SkillAilmentInfo(ailment, ailmentRate)) => {
-        val resist = target.ailmentResistances(ailment)
-        if (target.ailmentResistances(ailment) != AilmentResist.NullAilment) {
-          // freaky...
-          val isGuaranteed = ailment match {
-            case Ailment.LightDeath => target.resistances.light == ResistLevel.Weak
-            case Ailment.DarkDeath => target.resistances.dark == ResistLevel.Weak
-            case _ => false
-          }
 
-          val applyRaw = resist.multiplier * (ailmentRate.toDouble) * (caster.stats.luck + 100).toDouble / (target.stats
-                                                                                                                  .luck + 100)
-            .toDouble
-          println(applyRaw)
-          val applies = isGuaranteed || (battle.randomIn(0 to 100) < applyRaw.toInt)
-          if (applies) {
-            ailment.processApplication(battle, daTarget)
-            if (target.health <= 0) {
-              return Some(SkillResult(wasKnockedDown = isGuaranteed && !startedKnockdown))
-            }
-          }
-
+  def calcAccuracy(caster: Fighter, target: Fighter)(using rng: PRNG): Boolean =
+    if (accuracy >= 255)
+      true
+    else {
+      val accuracyRoot = (caster.stats.agility * 3 + caster.stats.luck + 20).toDouble / (target.stats.agility * 3 + target.stats.luck + 20).toDouble
+      val base =
+        if (accuracyRoot < 1) {
+          1 - (math.sqrt(1 - accuracyRoot) / 30 + (1 - accuracyRoot) / 12)
+        } else {
+          1 + math.sqrt(accuracyRoot - 1) / 15 + (accuracyRoot - 1) * 2 / 3
         }
-      }
-      case None => ()
+      val accuracyStage =
+        caster.agilityStatStage match
+          case StatStage.Down => 0.7
+          case StatStage.Neutral => 1.0
+          case StatStage.Up => 1.3
+      val evasionStage =
+        target.agilityStatStage match
+          case StatStage.Down => 1.3
+          case StatStage.Neutral => 1.0
+          case StatStage.Up => 0.7
+      val raw = base * accuracy.toDouble * accuracyStage * evasionStage
+      val scaled =
+        if (raw < 99) {
+          raw
+        } else if (raw >= 99 && raw < 114) {
+          (raw - 99) / 30 + 99
+        } else if (raw >= 114 && raw < 149) {
+          (raw - 114) / 70 + 99.5
+        } else 100
+      
+      val random = rng.random() * 100
+      scaled > random
     }
-    None
-  }
-  def runCore(battle: Battle, daCaster: SidedFighter, daTarget: SidedFighter): SkillResult = {
-    val caster = daCaster.fighter
-    val target = daTarget.fighter
-    if (element.damage) {
-      if (!target.resistances.get(element).exists(_.stopsDodge)) {
-        val didHit = calcAccuracy(battle, caster, target)
-        if (!didHit) {
-          println(s"${target.name} dodged the attack!")
-          return SkillResult()
-        }
-      }
-      val startedKnockdown = target.isDown
-      val offenseStat = if (strengthBased) caster.stats.strength else caster.stats.magic
-      val affinity = target.resistances.get(element).getOrElse(ResistLevel.Normal)
-      val resistLevelMultiplier = affinity match {
-        case ResistLevel.Weak => {
-          target.isDown = true
-          1.5
-        }
-        case ResistLevel.Normal => {
-          1.0
-        }
-        case ResistLevel.Resist => {
-          0.5
-        }
-        case ResistLevel.NullDamage => {
-          println(s"${target.name} nullified the attack!")
-          return SkillResult()
-        }
-        case ResistLevel.Drain => {
-          println(s"${target.name} drained the attack for ${basePower}!")
-          target.health += basePower
-          target.verifyHealth()
-          println(s"${target.name} is now at ${target.health}/${target.maxHP}")
-          return SkillResult()
-        }
-        case ResistLevel.Reflect => {
-          // TODO: reflect
-          println(s"${target.name} would have reflected, but i stupid")
-          1.0
-        }
-      }
 
-      applyAilment(battle, daCaster, daTarget) match {
-        case Some(res) => return res
-        case _ => ()
-      }
-      val technicalApplies = target.curAilment.exists(_.technicals.contains(element))
-      val resistCategoryMultiplier = if (technicalApplies) 1.5 else resistLevelMultiplier
-      val power = math.sqrt(basePower * 15 *  offenseStat / target.stats.endurance) * resistCategoryMultiplier
+  def powerBonus(value: Int)(using rng: PRNG): Int =
+    val a = rng.randomIn(0 to (math.max(0, (value.toDouble / 10 - 1).toInt)))
+    val b = rng.randomIn(0 to 3)
+    value + a + b
 
 
-      val finalPower = (power * (math.random() * 0.1 + 0.95)).toInt
-      if (finalPower > 0) {
-        println(s"${caster.name} damaged ${target.name} for ${finalPower} damage!")
-        if (technicalApplies) {
-          println("Technical!")
-          target.recoverAilment()
-          if (!startedKnockdown) {
-            println(s"${target.name} was knocked down!")
-          }
-          target.isDown = true
+  def applyEffect(caster: Fighter, target: Fighter, effect: SkillEffect)(using rng: PRNG): Unit =
+    effect match
+      case SkillEffect.Damage(power) =>
+        val base = BattleMath.getBase(caster.level, if (strengthBased) caster.stats.strength else caster.stats.magic, target.stats.endurance)
+        val attackStage =
+          caster.attackStatStage match
+            case StatStage.Down => 0.6
+            case StatStage.Neutral => 1.0
+            case StatStage.Up => 1.4
+        val defenseStage =
+          target.defenseStatStage match
+            case StatStage.Down => 1.4
+            case StatStage.Neutral => 1.0
+            case StatStage.Up => 0.6
+        val potential = caster.skillPotentials.get(element).get
+        val resist = target.resistances.get(element).get
+        val modified = base.toDouble * (power.toDouble / 100) * attackStage * defenseStage * potential.damageMultiplier * resist.resistNumber.getOrElse(0.0)
+        val res = powerBonus(modified.toInt)
+        target.health -= res
+      case SkillEffect.Healing(percent, power) =>
+        val root = target.maxHP * percent + power
+        val base = root * caster.skillPotentials.healing.healMultiplier.get
+        val res = powerBonus(base.toInt)
+        target.health += res
+      case SkillEffect.ReduceHPTo1 =>
+        target.health = 1
+      case SkillEffect.ExactDamage(by) =>
+        target.health -= by
+      case SkillEffect.ExactHealing(by) =>
+        target.health += by
+      case SkillEffect.HealAllHP =>
+        target.health = target.maxHP
+      case SkillEffect.RevivePercent(percent) =>
+        target.health = (target.maxHP * (percent.toDouble / 100)).toInt
+      case SkillEffect.DamagePercentRemaining(percent) => ???
+      case SkillEffect.DamagePercentFull(percent) => ???
+      case SkillEffect.ApplyAilment(ailment, rate) =>
+        lazy val success = {
+          val ratio = caster.stats.luck.toDouble / target.stats.luck
+          val root =
+            if (ratio < 0.5) {
+              0.25 - math.sqrt(0.5 - ratio) / 20 + ratio / 2
+            } else if (ratio > 1.5) {
+              math.sqrt(ratio) + 0.275
+            } else ratio
+          val raw = root * (rate.toDouble / 100) * caster.skillPotentials.get(element).get.ailmentMultiplier
+
+          val arate = math.min(raw, 100.0).toInt
+          arate > rng.randomIn(0 to 100)
         }
-        affinity match {
-          case ResistLevel.Weak => {
-            println(s"${target.name} was weak!")
-            if (!startedKnockdown) {
-              println(s"${target.name} was knocked down!")
-            }
-          }
-          case ResistLevel.Resist => println(s"${target.name} resisted the damage.")
-          case _ => ()
+        if (rate >= 255 || success) {
+          // TODO: handle application
+          println("would've applied")
         }
-        target.health = target.health - finalPower
-        val isValid = target.verifyHealth()
-        println(s"${target.name} is now at ${target.health}/${target.maxHP}")
-        if (!isValid) {
-          battle.processKill(daTarget)
-        }
-        return SkillResult(wasKnockedDown = !startedKnockdown && target.isDown)
-      }
-      SkillResult()
-    } else {
-      element match {
-        case Element.Healing => {
-          val magicBonus = (caster.stats.magic / 5) * 6
-          val baseHealingPower = (basePower.toDouble + magicBonus.toDouble)
-          val finalPower = (baseHealingPower * (math.random() * 0.1 + 0.95)).toInt
-          target.heal(battle, finalPower)
-          return SkillResult()
-        }
-        case Element.Ailment => {
-          applyAilment(battle, daCaster, daTarget)
-        }
-        case _ => ()
-      }
-    }
-    SkillResult()
-  }
+        
+
+      case SkillEffect.CureStatus =>
+        println("would've cured")
+      case SkillEffect.Group(ls) =>
+        ls.foreach(applyEffect(caster, target, _))
+      case SkillEffect.None => ()
+    
+
+  def performOne(caster: Fighter, target: Fighter)(using rng: PRNG): SkillResult =
+    if (!calcAccuracy(caster, target))
+      return SkillResult.Missed
+    
+    // Apply effects now we know we hit
+    applyEffect(caster, target, effect)
+
+
+    SkillResult.Unknown
+
 }

@@ -1,9 +1,9 @@
 package gay.menkissing.battle
 
 object Skills {
-  private def phys(rawId: String, cost: SkillCost, multi: Boolean, basePower: Int, critRate: Int, accuracy: Int, hits: Range = 1 to 1, ailment: Option[SkillAilmentInfo] = None, buffDebuffs: BuffDebuffs = BuffDebuffs())(using element: Element): Skill =
+  private def phys(rawId: String, cost: SkillCost, multi: Boolean, basePower: Int, critRate: Int, accuracy: Int, hits: Range = 1 to 1, ailment: Option[SkillAilmentInfo] = None, buffDebuffs: AppliedBuffs = AppliedBuffs.empty, specialFlags: SpecialSkillFlags = SpecialSkillFlags.empty)(using element: Element): Skill =
     val target = if (multi) SkillTarget.AllFoes else SkillTarget.Foe
-    Skill(s"skill.${element.id}.$rawId", basePower, element, accuracy, cost, target, strengthBased = true, criticalRate = critRate, ailment = ailment, buffDebuffs = buffDebuffs, hits = hits)
+    Skill.damaging(s"skill.${element.id}.$rawId", basePower, element, accuracy, cost, target, strengthBased = true, ailment = ailment, criticalRate = critRate, buffDebuffs = buffDebuffs, specialFlags = specialFlags, hits = hits)
 
   object strike {
     private given Element = Element.Strike
@@ -11,9 +11,9 @@ object Skills {
     val bash = phys("bash", SkillCost.HP(7), false, 120, 0, 90)
     val giganticFist = phys("gigantic_fist", SkillCost.HP(14), false, 190, 20, 85)
     val swiftStrike = phys("swift_strike", SkillCost.HP(15), true, 70, 0, 80, hits = 1 to 2)
-    val kidneySmash = phys("kidney_smash", SkillCost.HP(9), false, 70, 20, 92, buffDebuffs = BuffDebuffs(attackDown = true))
+    val kidneySmash = phys("kidney_smash", SkillCost.HP(9), false, 70, 20, 92, buffDebuffs = AppliedBuffs(attackDown = true))
     val assaultDive = phys("assault_dive", SkillCost.HP(11), false, 110, 20, 88)
-    val armorSplitter = phys("armor_splitter", SkillCost.HP(12), false, 110, 0, 92, buffDebuffs = BuffDebuffs(defenseDown = true))
+    val armorSplitter = phys("armor_splitter", SkillCost.HP(12), false, 110, 0, 92, buffDebuffs = AppliedBuffs(defenseDown = true))
     val herculeanStrike = phys("herculean_strike", SkillCost.HP(17), true, 150, 0, 85)
     val heatWave = phys("heat_wave", SkillCost.HP(20), true, 200, 0, 90)
     val akashaArts = phys("akasha_arts", SkillCost.HP(22), true, 170, 20, 88, hits = 1 to 2)
@@ -26,9 +26,8 @@ object Skills {
     val powerSlash = phys("power_slash", SkillCost.HP(7), false, 70, 0, 92)
     val tempestSlash = phys("tempest_slash", SkillCost.HP(14), false, 70, 0, 95, hits = 1 to 4)
     val fatalEnd = phys("fatal_end", SkillCost.HP(10), false, 110, 0, 95, ailment = Some(SkillAilmentInfo(Ailment.Fear, 35)))
-    // TODO: Add special guillotine flag to pass
-    val guillotine = phys("guillotine", SkillCost.HP(12), false, 110, 0, 95)
-    val legSlice = phys("leg_slice", SkillCost.HP(12), false, 110, 0, 95, buffDebuffs = BuffDebuffs(agilityDown = true))
+    val guillotine = phys("guillotine", SkillCost.HP(12), false, 110, 0, 95, specialFlags = SpecialSkillFlags(boostedAgainstAilment = true))
+    val legSlice = phys("leg_slice", SkillCost.HP(12), false, 110, 0, 95, buffDebuffs = AppliedBuffs(agilityDown = true))
     val braveBlade = phys("brave_blade", SkillCost.HP(20), false, 250, 20, 90)
     val vacuumSlash = phys("vacuum_slash", SkillCost.HP(14), true, 90, 0, 90)
     val bladeOfFury = phys("blade_of_fury", SkillCost.HP(17), true, 60, 0, 80, hits = 2 to 4)
@@ -43,9 +42,8 @@ object Skills {
     private given Element = Element.Pierce
 
     val arrowRain = phys("arrow_rain", SkillCost.HP(16), true, 50, 0, 85, hits = 1 to 4)
-    // TODO: special "bonus to downed" flag
-    val vileAssault = phys("vile_assault", SkillCost.HP(15), false, 200, 0, 95)
-    val cruelAttack = phys("cruel_attack", SkillCost.HP(13), false, 140, 0, 95)
+    val vileAssault = phys("vile_assault", SkillCost.HP(15), false, 200, 0, 95, specialFlags = SpecialSkillFlags(bonusAgainstDowned = true))
+    val cruelAttack = phys("cruel_attack", SkillCost.HP(13), false, 140, 0, 95, specialFlags = SpecialSkillFlags(bonusAgainstDowned = true))
     val primalForce = phys("primal_force", SkillCost.HP(21), false, 240, 20, 92)
     val torrentShot = phys("torrent_shot", SkillCost.HP(11), false, 50, 20, 85, hits = 2 to 4)
     val holyArrow = phys("holy_arrow", SkillCost.HP(8), false, 80, 0, 92, ailment = Some(SkillAilmentInfo(Ailment.Forget, 35)))
@@ -223,40 +221,59 @@ object Skills {
         SkillAilmentInfo(x, rate)
       }
 
-    val weak = Skill(s"skill.${element.id}.weak", powers.single.weak, element, magicAccuracy.single, costs.single.weak, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
-    val medium = Skill(s"skill.${element.id}.medium", powers.single.medium, element, magicAccuracy.single, costs.single.medium, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
-    val heavy = Skill(s"skill.${element.id}.heavy", powers.single.heavy, element, magicAccuracy.single, costs.single.heavy, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
-    val bloody = Skill(s"skill.${element.id}.bloody", powers.single.bloody, element, magicAccuracy.bloody, costs.single.bloody, SkillTarget.Foe, ailment = getAilment(ailmentRates.singleBloody))
-    val severe = Skill(s"skill.${element.id}.severe", powers.single.severe, element, magicAccuracy.singleSevere, costs.single.severe, SkillTarget.Foe, ailment = getAilment(ailmentRates.singleSevere))
-    val weakMulti = Skill(s"skill.${element.id}.weak_multi", powers.multi.weak, element, magicAccuracy.multi, costs.multi.weak, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
-    val mediumMulti = Skill(s"skill.${element.id}.medium_multi", powers.multi.medium, element, magicAccuracy.multi, costs.multi.medium, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
-    val heavyMulti = Skill(s"skill.${element.id}.heavy_multi", powers.multi.heavy, element, magicAccuracy.multi, costs.multi.heavy, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
-    val severeMulti = Skill(s"skill.${element.id}.severe_multi", powers.multi.severe, element, magicAccuracy.multi, costs.multi.severe, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multiSevere))
+    val weak = Skill.damaging(s"skill.${element.id}.weak", powers.single.weak, element, magicAccuracy.single, costs.single.weak, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
+    val medium = Skill.damaging(s"skill.${element.id}.medium", powers.single.medium, element, magicAccuracy.single, costs.single.medium, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
+    val heavy = Skill.damaging(s"skill.${element.id}.heavy", powers.single.heavy, element, magicAccuracy.single, costs.single.heavy, SkillTarget.Foe, ailment = getAilment(ailmentRates.single))
+    val bloody = Skill.damaging(s"skill.${element.id}.bloody", powers.single.bloody, element, magicAccuracy.bloody, costs.single.bloody, SkillTarget.Foe, ailment = getAilment(ailmentRates.singleBloody))
+    val severe = Skill.damaging(s"skill.${element.id}.severe", powers.single.severe, element, magicAccuracy.singleSevere, costs.single.severe, SkillTarget.Foe, ailment = getAilment(ailmentRates.singleSevere))
+    val weakMulti = Skill.damaging(s"skill.${element.id}.weak_multi", powers.multi.weak, element, magicAccuracy.multi, costs.multi.weak, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
+    val mediumMulti = Skill.damaging(s"skill.${element.id}.medium_multi", powers.multi.medium, element, magicAccuracy.multi, costs.multi.medium, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
+    val heavyMulti = Skill.damaging(s"skill.${element.id}.heavy_multi", powers.multi.heavy, element, magicAccuracy.multi, costs.multi.heavy, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multi))
+    val severeMulti = Skill.damaging(s"skill.${element.id}.severe_multi", powers.multi.severe, element, magicAccuracy.multi, costs.multi.severe, SkillTarget.AllFoes, ailment = getAilment(ailmentRates.multiSevere))
+  }
+
+  class TechnicalMagic private[Skills] (
+                  element: Element,
+                  powers: MagicPowersGroup,
+                  costs: magicCost.SkillCostGrouping,
+                  ) extends PlainMagic(element, powers, costs, None) 
+                  {
+    val technicalBoosted = Skill.damaging(s"skill.${element.id}.technical_boosted", powers.single.medium, element, magicAccuracy.single, SkillCost.SP(25), SkillTarget.Foe)
   }
 
   val fire = new PlainMagic(Element.Fire, magicPowers, magicCost.normal, Some(Ailment.Burn))
   val ice = new PlainMagic(Element.Ice, magicPowers, magicCost.normal, Some(Ailment.Freeze))
   val electric = new PlainMagic(Element.Electric, magicPowers, magicCost.normal, Some(Ailment.Shock))
   val wind = new PlainMagic(Element.Wind, magicPowers, magicCost.cheap, None)
-  val psy = new PlainMagic(Element.Psy, magicPowers, magicCost.normal, None)
-  val nuke = new PlainMagic(Element.Nuke, magicPowers, magicCost.normal, None)
+  val psy = new TechnicalMagic(Element.Psy, magicPowers, magicCost.normal)
+  val nuke = new TechnicalMagic(Element.Nuke, magicPowers, magicCost.normal)
   val bless = new PlainMagic(Element.Bless, strongMagicPowers, magicCost.expensive, Some(Ailment.LightDeath), instakillRates)
   val curse = new PlainMagic(Element.Curse, strongMagicPowers, magicCost.expensive, Some(Ailment.DarkDeath), instakillRates)
 
 
 
   object healing {
-    val weak = Skill("skill.healing.heal.weak", 50, Element.Healing, 100, SkillCost.SP(3), SkillTarget.Ally)
-    val weakMulti = Skill("skill.healing.heal.weak_multi", 40, Element.Healing, 100, SkillCost.SP(7), SkillTarget.AllAllies)
+    val weak = Skill("skill.healing.heal.weak", SkillEffect.Healing(0.15, 35), Element.Healing, Skill.maxAccuracy, SkillCost.SP(8), SkillTarget.Ally)
+    val weakMulti = Skill("skill.healing.heal.weak_multi", SkillEffect.Healing(0.13, 30), Element.Healing, Skill.maxAccuracy, SkillCost.SP(30), SkillTarget.AllAllies)
 
-    val medium = Skill("skill.healing.heal.medium", 160, Element.Healing, 100, SkillCost.SP(8), SkillTarget.Ally)
-    val mediumMulti = Skill("skill.healing.heal.medium_multi", 140, Element.Healing, 100, SkillCost.SP(16), SkillTarget.AllAllies)
+    val medium = Skill("skill.healing.heal.medium", SkillEffect.Healing(0.25, 80), Element.Healing, Skill.maxAccuracy, SkillCost.SP(15), SkillTarget.Ally)
+    val mediumMulti = Skill("skill.healing.heal.medium_multi", SkillEffect.Healing(0.22, 65), Element.Healing, Skill.maxAccuracy, SkillCost.SP(60), SkillTarget.AllAllies)
+
+    val full = Skill("skill.healing.heal.full", SkillEffect.HealAllHP, Element.Healing, Skill.maxAccuracy, SkillCost.SP(35), SkillTarget.Ally)
+    val fullMulti = Skill("skill.healing.heal.full_multi", SkillEffect.HealAllHP, Element.Healing, Skill.maxAccuracy, SkillCost.SP(150), SkillTarget.AllAllies)
+
+    val cureStatus = Skill("skill.healing.cure_status", SkillEffect.CureStatus, Element.Healing, Skill.maxAccuracy, SkillCost.SP(8), SkillTarget.Ally)
+    val cureStatusMulti = Skill("skill.healing.cure_status_multi", SkillEffect.CureStatus, Element.Healing, Skill.maxAccuracy, SkillCost.SP(30), SkillTarget.AllAllies)
+
+    val salvation = Skill("skill.healing.salvation", SkillEffect.Group(List(SkillEffect.HealAllHP, SkillEffect.CureStatus)), Element.Healing, Skill.maxAccuracy, SkillCost.SP(200), SkillTarget.AllAllies)
+
+    //val reviveHalf = Skill("skill.healing.revive_half", 0, Element.Healing, 100, SkillCost.SP(20), SkillTarget.Ally)
   }
   
   object almighty {
-    val medium = Skill("skill.almighty.medium", 125, Element.Almighty, 95, SkillCost.SP(40), SkillTarget.AllFoes)
-    val heavy = Skill("skill.almighty.heavy", 160, Element.Almighty, 95, SkillCost.SP(70), SkillTarget.AllFoes)
-    val severe = Skill("skill.almighty.severe", 190, Element.Almighty, 95, SkillCost.SP(120), SkillTarget.AllFoes)
+    val medium = Skill.damaging("skill.almighty.medium", 125, Element.Almighty, 95, SkillCost.SP(40), SkillTarget.AllFoes)
+    val heavy = Skill.damaging("skill.almighty.heavy", 160, Element.Almighty, 95, SkillCost.SP(70), SkillTarget.AllFoes)
+    val severe = Skill.damaging("skill.almighty.severe", 190, Element.Almighty, 95, SkillCost.SP(120), SkillTarget.AllFoes)
   }
 
 
@@ -279,21 +296,19 @@ object Skills {
                                      ) {
     val single: Skill = Skill(
       s"skill.ailment.${ailment.id}",
-      0,
+      SkillEffect.ApplyAilment(ailment, rates.single),
       Element.Ailment,
-      100,
+      Skill.maxAccuracy,
       AilmentCosts.single,
-      SkillTarget.Foe,
-      ailment = Some(SkillAilmentInfo(ailment, rates.single))
+      SkillTarget.Foe
     )
     val multi: Skill = Skill(
       s"skill.ailment.${ailment.id}_multi",
-      0,
+      SkillEffect.ApplyAilment(ailment, rates.multi),
       Element.Ailment,
-      100,
+      Skill.maxAccuracy,
       AilmentCosts.multi,
       SkillTarget.AllFoes,
-      ailment = Some(SkillAilmentInfo(ailment, rates.multi))
     )
   }
 
@@ -303,9 +318,50 @@ object Skills {
   val despair = new AilmentSkills(Ailment.Despair, highAilmentRates)
   val forget = new AilmentSkills(Ailment.Forget, highAilmentRates)
 
+  def supportSkill(id: String, target: SkillTarget, cost: SkillCost, buffDebuffs: AppliedBuffs): Skill =
+    Skill(s"skill.support.$id", SkillEffect.None, Element.Support, 100, cost, target, false, buffDebuffs = buffDebuffs)
+
+  object support {
+    private val chargeCost = SkillCost.SP(30)
+    private val donumCost = SkillCost.SP(40)
+    private val costStatUp = SkillCost.SP(8)
+    private val costStatDown = SkillCost.SP(8)
+    private val costStatUpAll = SkillCost.SP(24)
+    private val costStatDownAll = SkillCost.SP(30)
+    private val costAllStat = SkillCost.SP(40)
+    private val costAllStatAll = SkillCost.SP(150)
+
+    val charge = supportSkill("charge", SkillTarget.Self, chargeCost, AppliedBuffs(powerCharge = true))
+    val concentrate = supportSkill("concentrate", SkillTarget.Self, chargeCost, AppliedBuffs(mindCharge = true))
+    val bloodyCharge = supportSkill("bloody_charge", SkillTarget.Self, SkillCost.HP(40), AppliedBuffs(powerCharge = true, rebellion = true))
+    val debilitate = supportSkill("debilitate", SkillTarget.Foe, costAllStat, AppliedBuffs(attackDown = true, defenseDown = true, agilityDown = true))
+    val dekaja = supportSkill("dekaja", SkillTarget.AllFoes, SkillCost.SP(40), AppliedBuffs(dekaja = true))
+    val dekunda = supportSkill("dekunda", SkillTarget.AllAllies, SkillCost.SP(40), AppliedBuffs(dekunda = true))
+    val heatRiser = supportSkill("heat_riser", SkillTarget.Ally, costAllStat, AppliedBuffs(attackUp = true, defenseUp = true, agilityUp = true))
+    val rakukaja = supportSkill("defense_up", SkillTarget.Ally, costStatUp, AppliedBuffs(defenseUp = true))
+    val marakukaja = supportSkill("defense_up_all", SkillTarget.AllAllies, costStatUpAll, AppliedBuffs(defenseUp = true))
+    val tarukaja = supportSkill("attack_up", SkillTarget.Ally, costStatUp, AppliedBuffs(attackUp = true))
+    val matarukaja = supportSkill("attack_up_all", SkillTarget.AllAllies, costStatUpAll, AppliedBuffs(attackUp = true))
+    val sukukaja = supportSkill("agility_up", SkillTarget.Ally, costStatUp, AppliedBuffs(agilityUp = true))
+    val masukukaja = supportSkill("agility_up_all", SkillTarget.AllAllies, costStatUpAll, AppliedBuffs(agilityUp = true))
+    val rakunda = supportSkill("defense_down", SkillTarget.Foe, costStatDown, AppliedBuffs(defenseDown = true))
+    val marakunda = supportSkill("defense_down_all", SkillTarget.AllFoes, costStatDownAll, AppliedBuffs(defenseDown = true))
+    val tarunda = supportSkill("attack_down", SkillTarget.Foe, costStatDown, AppliedBuffs(attackDown = true))
+    val matarunda = supportSkill("attack_down_all", SkillTarget.AllFoes, costStatDownAll, AppliedBuffs(attackDown = true))
+    val sukunda = supportSkill("agility_down", SkillTarget.Foe, costStatDown, AppliedBuffs(agilityDown = true))
+    val masukunda = supportSkill("agility_down_all", SkillTarget.AllFoes, costStatDownAll, AppliedBuffs(agilityDown = true))
+    val criticalAura = supportSkill("critical_aura", SkillTarget.Self, SkillCost.SP(25), AppliedBuffs(criticalAura = true))
+    val heatRiserAll = supportSkill("heat_riser_all", SkillTarget.AllAllies, costAllStatAll, AppliedBuffs(attackUp = true, defenseUp = true, agilityUp = true))
+    val trumpetsOfDoom = supportSkill("debilitate_all", SkillTarget.AllFoes, costAllStatAll, AppliedBuffs(attackDown = true, defenseDown = true, agilityDown = true))
+    val donumGladi = supportSkill("donum_gladi", SkillTarget.Ally, donumCost, AppliedBuffs(donumGladi = true))
+    val donumMagici = supportSkill("donum_magici", SkillTarget.Ally, donumCost, AppliedBuffs(donumMagici = true))
+
+  }
+
+
   private def forceApplyAilment(ailment: Ailment, element: Element = Element.Ailment): Skill =
-    Skill(s"skill.debug.${ailment.id}", 0, element, 100, SkillCost.SP(1), SkillTarget
-      .Foe, false, Some(SkillAilmentInfo(ailment, 100)))
+    Skill(s"skill.debug.${ailment.id}", SkillEffect.ApplyAilment(ailment, 100), element, Skill.maxAccuracy, SkillCost.SP(1), SkillTarget
+      .Foe, false)
 
   val forceApplyBurn = forceApplyAilment(Ailment.Burn, Element.Fire)
   val forceApplyFreeze = forceApplyAilment(Ailment.Freeze, Element.Ice)

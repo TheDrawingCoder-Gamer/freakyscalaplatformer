@@ -22,9 +22,11 @@ import scala.util.Using
 val renderWidth = 320
 val renderHeight = 180
 
+val scaleRatio = 5
+
 // size of assets that are fullscreen
-val fullRenderWidth = renderWidth * 5
-val fullRenderHeight = renderHeight * 5
+val fullRenderWidth = renderWidth * scaleRatio
+val fullRenderHeight = renderHeight * scaleRatio
 
 case class GraphicsContext(stack: MatrixStack, camera: gay.menkissing.common.math.Point)
 

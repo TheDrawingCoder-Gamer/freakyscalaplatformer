@@ -5,6 +5,17 @@ package group
 open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
   val group = GayTypedGroup[T]()
 
+    
+
+  override def graphicalWidth: Int =
+    val minX = group.members.minByOption(_.x).map(_.x).getOrElse(0)
+    val maxX = group.members.maxByOption(o => o.x + o.graphicalWidth).map(o => o.x + o.graphicalWidth).getOrElse(0)
+    maxX - minX
+  override def graphicalHeight: Int =
+    val minY = group.members.minByOption(_.y).map(_.y).getOrElse(0)
+    val maxY = group.members.maxByOption(o => o.y + o.graphicalHeight).map(o => o.y + o.graphicalHeight).getOrElse(0)
+    maxY - minY
+
   override def x_=(v: Int): Unit =
     if (exists && _x != v) {
       transformChildren(xTransform, v - _x)
@@ -31,7 +42,6 @@ open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
     val numProps = fs.length
     if (fs.sizeCompare(values) > 0)
       return
-
     val zipped = fs.zip(values)
 
     group.foreachExists { sprite =>

@@ -13,7 +13,6 @@ trait Fighter {
 
   def infoStr: String = s"${name} HP: ${health}/$maxHP SP: $sp/$maxSP ${if (isDown) "Downed" else ""}"
 
-  def printInfo(): Unit = println(infoStr)
 
   def skills: List[Skill]
 
@@ -27,6 +26,15 @@ trait Fighter {
 
   var curAilment: Option[Ailment] = None
   var ailmentTimer: Int = 0
+
+  var attackStatStage: StatStage = StatStage.Neutral
+  var defenseStatStage: StatStage = StatStage.Neutral
+  var agilityStatStage: StatStage = StatStage.Neutral
+
+  var hasCharge: Boolean = false
+  var hasConcentrate: Boolean = false
+  var hasDonumGladi: Boolean = false
+  var hasDonumMagici: Boolean = false
 
   // Multiplier used when this fighter is the attacker
   def accuracyMultiplier: Double = {
@@ -50,19 +58,6 @@ trait Fighter {
     var multiplier = if (curAilment.contains(Ailment.Rage)) 2.0 else 1.0
     if (isDown) multiplier *= 1.25
     multiplier
-  }
-  def takeDamage(battle: Battle, dmg: Int): Boolean = {
-    println(s"$name took $dmg damage!")
-    health -= dmg
-    val died = !verifyHealth()
-    println(s"$name is now at $health/$maxHP")
-    died
-  }
-  def heal(battle: Battle, by: Int): Unit = {
-    println(s"$name was healed for $by HP")
-    health += by
-    verifyHealth()
-    println(s"$name is now at $health/$maxHP")
   }
   def verifyHealth(): Boolean = {
     if (health < 0) health = 0
@@ -108,7 +103,7 @@ class BasicFighter(val name: String,
   var sp: Int = maxSP
   var isDown: Boolean = false
 
-  val basicAttackSkill: Skill = Skill("Basic Attack", basicPower / 2, basicAffinity, 90, SkillCost.HP(0), SkillTarget.Foe, personaSkill = false)
+  val basicAttackSkill: Skill = Skill("Basic Attack", SkillEffect.Damage(basicPower / 2), basicAffinity, 90, SkillCost.HP(0), SkillTarget.Foe, personaSkill = false)
 
 }
 

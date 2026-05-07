@@ -13,4 +13,6 @@ final class PreloadTextures extends TexturePack {
     val destructible = draw.Texture(getClass.getResourceAsStream("/destructible.png")).register()
     val haxe = draw.Texture(getClass.getResourceAsStream("/haxe1.png")).register()
     val elements = draw.Texture(getClass.getResourceAsStream("/elements.png")).register()
+    val lucaPortrait = draw.Texture(getClass.getResourceAsStream("/lucaportrait.png")).register()
+    val testEnemy = draw.Texture(getClass.getResourceAsStream("/testenemy.png")).register()
 }

@@ -6,7 +6,7 @@ import gay.menkissing.draw.MatrixStack
 import collection.mutable
 
 class GayTypedGroup[T <: GayBasic] extends GayBasic {
-  protected val members = mutable.ArrayBuffer[T]()
+  val members = mutable.ArrayBuffer[T]()
 
   def length: Int = members.length
 
