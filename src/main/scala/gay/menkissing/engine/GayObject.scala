@@ -140,7 +140,7 @@ open class GayObject extends GayBasic {
     
 
     def viewableOnCamera(cam: GayView): Boolean =
-        visible && ((if (!cameras.removeFromDefault) Game.instance.gamemanager.cameras.defaults.contains(cam) else false) || cameras.cameras(cam))
+        visible && cam == this.layer
 
     def touch(player: Player): Unit = ()
     def canTouch(player: Player): Boolean = false

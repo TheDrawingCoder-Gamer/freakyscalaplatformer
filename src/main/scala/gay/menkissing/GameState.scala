@@ -2,7 +2,7 @@ package gay.menkissing
 
 import gay.menkissing.engine.*
 
-class GameState(manager: GameManager) extends GayState(manager) {
+class GameState() extends GayState() {
   Textures
   def input1 = GayG.input
   val world = World.load()
@@ -36,9 +36,9 @@ class GameState(manager: GameManager) extends GayState(manager) {
 
 
     add(testObject2)
-    testObject2.cameras.addToCamera(manager.fullCam).hideFromDefault()
+    testObject2.setLayer(manager.fullCam)
     add(testObject)
-    testObject.cameras.addToCamera(manager.fullCam).hideFromDefault()
+    testObject.setLayer(manager.fullCam)
 
     world.levels(world.start.level).addEntities(this)
 

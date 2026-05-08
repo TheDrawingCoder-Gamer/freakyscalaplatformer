@@ -13,4 +13,6 @@ object GayG {
   val random = new PRNG {
     def random(): Double = math.random()
   }
+
+  def manager: GameManager = Game.instance.gamemanager
 }

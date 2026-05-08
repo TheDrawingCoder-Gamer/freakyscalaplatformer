@@ -39,23 +39,25 @@ class GaySprite(private var _graphic: GayGraphic) extends GayObject {
 
 
   override def render(): Unit =  {
+    if (!this.visible || !this.exists)
+      return
     val width = graphicalWidth
-    Game.instance.gamemanager.cameras.camList.withFilter(this.viewableOnCamera).foreach { cam =>
-      val stack = cam.makeStack()
-      cam.hotswapTo()
+    val cam = this.layer
+    val stack = cam.makeStack()
+    cam.hotswapTo()
 
-      val screenPos = getScreenPosition(cam)
-      stack.translate(screenPos.x.toFloat, screenPos.y.toFloat, zIndex.toFloat)
+    val screenPos = getScreenPosition(cam)
+    stack.translate(screenPos.x.toFloat, screenPos.y.toFloat, zIndex.toFloat)
 
-      if (!facingRight) {
-        stack.translate(width, 0, 0)
-        stack.scale(-1, 1, 1)
-      }
-
-      stack.scale(width, graphicalHeight, 1)
-
-      graphic.render(stack)
+    if (!facingRight) {
+      stack.translate(width, 0, 0)
+      stack.scale(-1, 1, 1)
     }
+
+    stack.scale(width, graphicalHeight, 1)
+
+    graphic.render(stack)
+    
   }
 
 }

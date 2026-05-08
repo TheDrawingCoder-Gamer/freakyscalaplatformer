@@ -4,6 +4,7 @@ package battle
 import engine.group.*
 import gay.menkissing.engine.GaySprite
 import gay.menkissing.engine.GayTexture
+import gay.menkissing.engine.GayMesh2D
 
 class BattlePortrait(val fighter: Fighter, portrait: draw.Texture) extends GayObjectContainer {
   val portraitSprite = GaySprite(GayTexture(portrait))
@@ -17,6 +18,14 @@ class BattlePortrait(val fighter: Fighter, portrait: draw.Texture) extends GayOb
   add(spBar)
   spBar.healthRect.rect.color = draw.Color.fromHex(0xFFFF00FF)
   spBar.y = hpBar.y + BattlePortrait.barHeight
+  val selector = GayMesh2D(CustomMeshes.triangleMesh, 100, 32)
+  selector.color = BattleMenu.primaryColor
+  selector.x += (portraitSprite.graphicalWidth - selector.graphicalWidth) / 2
+  selector.y -= 10
+  add(selector)
+  selector.visible = false
+  fighter.healthUpdateSignal.add(hpBar.setValue)
+  fighter.spUpdateSignal.add(spBar.setValue)
 }
 
 object BattlePortrait {

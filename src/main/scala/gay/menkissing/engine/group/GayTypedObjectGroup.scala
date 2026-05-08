@@ -55,9 +55,7 @@ open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
     sprite.x += x
     sprite.y += y
     sprite.scrollFactor = this.scrollFactor
-    sprite.cameras.reset()
-    sprite.cameras.removeFromDefault = this.cameras.removeFromDefault
-    sprite.cameras.cameras.addAll(this.cameras.cameras)
+    sprite.setLayer(this._layer.orNull)
   }
 
   def add(sprite: T): sprite.type =
@@ -75,7 +73,7 @@ open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
   def remove(sprite: T): sprite.type =
     sprite.x -= x
     sprite.y -= y
-    sprite.cameras.reset()
+    sprite.setLayer(null)
     group.remove(sprite)
 
   override def render(): Unit =

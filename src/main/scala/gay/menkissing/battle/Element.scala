@@ -1,29 +1,29 @@
 package gay.menkissing.battle
 
 // This ordinal is also the ordering of the spritesheet's sprites
-enum Element(val name: String, val id: String, val physical: Boolean = false, val damage: Boolean = true) {
-  case Strike extends Element(name = "Strike", id = "strike", physical = true)
-  case Slash extends Element(name = "Slash", id = "slash", physical = true)
-  case Pierce extends Element(name = "Pierce", id = "pierce", physical = true)
+enum Element(val id: String, val physical: Boolean = false, val damage: Boolean = true) {
+  case Strike extends Element(id = "strike", physical = true)
+  case Slash extends Element(id = "slash", physical = true)
+  case Pierce extends Element(id = "pierce", physical = true)
 
-  case Fire extends Element(name = "Fire", id = "fire")
-  case Ice extends Element(name = "Ice", id = "ice")
+  case Fire extends Element(id = "fire")
+  case Ice extends Element(id = "ice")
 
-  case Wind extends Element(name = "Wind", id = "wind")
-  case Electric extends Element(name = "Electric", id = "electric")
+  case Wind extends Element(id = "wind")
+  case Electric extends Element(id = "electric")
 
-  case Psy extends Element(name = "Psy", id = "psy")
-  case Nuke extends Element(name = "Nuke", id = "nuke")
+  case Psy extends Element(id = "psy")
+  case Nuke extends Element(id = "nuke")
 
-  case Bless extends Element(name = "Bless", id = "bless")
-  case Curse extends Element(name = "Curse", id = "curse")
+  case Bless extends Element(id = "bless")
+  case Curse extends Element(id = "curse")
 
-  case Almighty extends Element(name = "Almighty", id = "almighty")
+  case Almighty extends Element(id = "almighty")
 
-  case Healing extends Element(name = "Healing", id = "healing", damage = false)
-  case Ailment extends Element(name = "Ailment", id = "ailment", damage = false)
-  case Support extends Element(name = "Support", id = "support", damage = false)
-  case Passive extends Element(name = "Passive", id = "passive", damage = false)
+  case Healing extends Element(id = "healing", damage = false)
+  case Ailment extends Element(id = "ailment", damage = false)
+  case Support extends Element(id = "support", damage = false)
+  case Passive extends Element(id = "passive", damage = false)
 }
 
 object Element {

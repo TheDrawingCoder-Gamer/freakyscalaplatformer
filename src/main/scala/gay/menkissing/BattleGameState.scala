@@ -28,11 +28,11 @@ enum MenuFocus {
   case Hidden
 }
 
-class BattleGameState(manager: GameManager) extends GayState(manager):
+class BattleGameState() extends GayState():
   val menu =RootBattleMenu()
-  menu.cameras.hideFromDefault().addToCamera(manager.fullCam)
+  menu.setLayer(manager.fullCam)
   val skillMenu = SkillBattleMenu(menu)
-  skillMenu.cameras.hideFromDefault().addToCamera(manager.fullCam)
+  skillMenu.setLayer(manager.fullCam)
   skillMenu.visible = false
   skillMenu.y += 128
 
@@ -43,7 +43,7 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
       100,
       5,
       Stats(10, 10, 10, 10, 10),
-      List(Skills.slash.powerSlash, Skills.ice.weak),
+      List(Skills.slash.powerSlash, Skills.ice.weak, Skills.ice.bloody),
       Element.Slash,
       60,
       resistances = ResistElementMap(ice = ResistLevel.Resist, fire = ResistLevel.Weak),
@@ -51,7 +51,7 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
       )
 
   val portrait = BattlePortrait(mcFighter, Textures.preload.lucaPortrait)
-  portrait.cameras.hideFromDefault().addToCamera(manager.fullCam)
+  portrait.setLayer(manager.fullCam)
   portrait.y = draw.fullRenderHeight - portrait.graphicalHeight
 
   val enemyFighter =
@@ -68,8 +68,9 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
     )
 
   val enemy = Enemy(enemyFighter, Textures.preload.testEnemy)
-  enemy.x = 20
-  enemy.y = 20
+  enemy.setLayer(manager.fullCam)
+  enemy.x = 100
+  enemy.y = 100
 
   var selectionQueued: Skill = null
   val enemies = mutable.ArrayBuffer(enemy)
@@ -82,9 +83,7 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
 
   var currentPlayer: Fighter = null
 
-  val enemySelector = EnemySelector()
-  enemySelector.cameras.hideFromDefault().addToCamera(manager.fullCam)
-  enemySelector.visible = false
+
 
 
   
@@ -95,20 +94,28 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
     currentPlayer = portrait.fighter
 
   override def start(): Unit =
+    add(enemy)
     add(menu)
     add(skillMenu)
     add(portrait)
-    add(enemy)
-    add(enemySelector)
+    
     startPlayerTurn(portrait)
     // backgroundSource.play()
+
+
+  def cancelEnemySelection(): Unit =
+    enemies.foreach(_.selector.visible = false)
+
+  def updateEnemySelection(): Unit =
+    cancelEnemySelection()
+    enemies(selectedEnemy).selector.visible = true
 
   def editFocusedHorz(by: Int): Unit =
     currentFocus match
       case MenuFocus.EnemySelectionOne =>
         selectedEnemy += by
         selectedEnemy = math.floorMod(selectedEnemy, enemies.length)
-        enemySelector.updateSelection(enemies(selectedEnemy))
+        updateEnemySelection()
       case _ => ()
 
   def editFocusedVert(by: Int): Unit =
@@ -120,13 +127,32 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
   def startEnemySelect(multi: Boolean): Unit =
     menu.visible = false
     skillMenu.visible = false
-    enemySelector.visible = true
     selectedEnemy = 0
-    enemySelector.updateSelection(enemies.head)
+    updateEnemySelection()
     if (multi)
       currentFocus = MenuFocus.EnemySelectionAll
     else
       currentFocus = MenuFocus.EnemySelectionOne
+
+  def switchFocus(focus: MenuFocus): Unit =
+    currentFocus = focus
+    focus match
+      case MenuFocus.Root =>
+        skillMenu.visible = false
+        menu.visible = true
+      case MenuFocus.Skill =>
+        skillMenu.visible = true
+        menu.visible = true
+      case MenuFocus.EnemySelectionOne =>
+        skillMenu.visible = false
+        menu.visible = false
+      case MenuFocus.EnemySelectionAll =>
+        skillMenu.visible = false
+        menu.visible = false
+      case MenuFocus.Hidden =>
+        skillMenu.visible = false
+        menu.visible = false
+    
 
   override def update(): Unit =
     super.update()
@@ -149,6 +175,10 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
             case RootBattleMenu.Options.Attack =>
               selectionQueued = currentPlayer.basicAttackSkill
               startEnemySelect(multi = false)
+            case RootBattleMenu.Options.Skill =>
+              skillMenu.visible = true
+              currentFocus = MenuFocus.Skill
+            case RootBattleMenu.Options.Item => ()
         case MenuFocus.Skill =>
           val skill = skillMenu.currentSelected.skill.get
           selectionQueued = skill
@@ -163,7 +193,6 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
         case MenuFocus.EnemySelectionOne =>
           val selection = enemies(selectedEnemy)
           selectionQueued.performOne(currentPlayer, selection.fighter)(using GayG.random)
-          enemySelector.updateSelection(selection)
           
         case MenuFocus.EnemySelectionAll => ()
         case MenuFocus.Hidden => ()
@@ -174,11 +203,17 @@ class BattleGameState(manager: GameManager) extends GayState(manager):
         case MenuFocus.Skill =>
           currentFocus = MenuFocus.Root
           skillMenu.visible = false
-        case MenuFocus.EnemySelectionOne => ()
+        case MenuFocus.EnemySelectionOne =>
+          cancelEnemySelection()
+          if (selectionQueued.personaSkill) {
+            switchFocus(MenuFocus.Skill)
+          } else {
+            switchFocus(MenuFocus.Root)
+          }
         case MenuFocus.EnemySelectionAll => ()
         case MenuFocus.Hidden => ()
     }
 
-  override def close(): Unit =
+  override def destroy(): Unit =
     //backgroundSource.cleanup()
     ()

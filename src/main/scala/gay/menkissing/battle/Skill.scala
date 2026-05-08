@@ -141,8 +141,7 @@ final case class Skill
 ) {
   def name: String = L10n.instance.named(id)
 
-  override def toString: String = s"$name ${element.name} root $effect target $target"
-  def displayStr(caster: Fighter): String = s"$name ${element.name} \u221A $effect target $target cost ${cost.skillCost(caster)}"
+  override def toString: String = s"$name ${element.id} effect $effect target $target"
   def canAffordSkill(caster: Fighter, spendsHP: Boolean = true): Boolean = {
     cost.skillCost(caster) match {
       case SkillCost.RealSkillCost.HP(by) => caster.health > by
@@ -208,6 +207,7 @@ final case class Skill
             case StatStage.Up => 0.6
         val potential = caster.skillPotentials.get(element).get
         val resist = target.resistances.get(element).get
+        
         val modified = base.toDouble * (power.toDouble / 100) * attackStage * defenseStage * potential.damageMultiplier * resist.resistNumber.getOrElse(0.0)
         val res = powerBonus(modified.toInt)
         target.health -= res
@@ -257,6 +257,7 @@ final case class Skill
 
   def performOne(caster: Fighter, target: Fighter)(using rng: PRNG): SkillResult =
     if (!calcAccuracy(caster, target))
+      println("missed!")
       return SkillResult.Missed
     
     // Apply effects now we know we hit

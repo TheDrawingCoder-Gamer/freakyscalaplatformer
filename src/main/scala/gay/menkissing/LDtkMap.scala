@@ -8,28 +8,28 @@ import upickle.default.*
 import java.io.InputStreamReader
 import scala.collection.{immutable as immut, mutable as mut}
 
-case class LDtkRawFieldInstance(__identifier: String, __value: ujson.Value, __type: String)
+final case class LDtkRawFieldInstance(__identifier: String, __value: ujson.Value, __type: String)
     derives ReadWriter
 
-case class LDtkEntityInstance(__identifier: String, __grid: (Int, Int), fieldInstances: List[LDtkRawFieldInstance], 
+final case class LDtkEntityInstance(__identifier: String, __grid: (Int, Int), fieldInstances: List[LDtkRawFieldInstance], 
     __worldX: Int, __worldY: Int, width: Int, height: Int)
     derives ReadWriter
 
-case class LDtkAutoLayerTile(px: (Int, Int), t: Int)
+final case class LDtkAutoLayerTile(px: (Int, Int), t: Int)
     derives ReadWriter
 
-case class LDtkLayerInstance(__type: String, __identifier: String, entityInstances: List[LDtkEntityInstance],
+final case class LDtkLayerInstance(__type: String, __identifier: String, entityInstances: List[LDtkEntityInstance],
     autoLayerTiles: List[LDtkAutoLayerTile])
     derives ReadWriter
 
-case class LDtkLevel(worldX: Int, worldY: Int, pxWid: Int, pxHei: Int, 
+final case class LDtkLevel(worldX: Int, worldY: Int, pxWid: Int, pxHei: Int, 
     layerInstances: List[LDtkLayerInstance], fieldInstances: List[LDtkRawFieldInstance])
     derives ReadWriter
 
-case class LDtkMap(levels: List[LDtkLevel])
+final case class LDtkMap(levels: List[LDtkLevel])
     derives ReadWriter
 
-case class TileMap(width: Int, height: Int, items: collection.mutable.ArrayBuffer[Int]) {
+final case class TileMap(width: Int, height: Int, items: collection.mutable.ArrayBuffer[Int]) {
     def get(x: Int, y: Int): Option[Int] = {
         if (x < 0 || x >= width)
             return None
@@ -87,7 +87,7 @@ enum EntityData {
     case Destructible
 }
 
-case class Entity(x: Int, y: Int, w: Int, h: Int, data: EntityData)
+final case class Entity(x: Int, y: Int, w: Int, h: Int, data: EntityData)
 
 object Entity {
     def fromLDtk(x: Int, y: Int, entity: LDtkEntityInstance): Option[Entity] = {
@@ -108,7 +108,7 @@ object Entity {
 }
 
 
-case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: immut.ArraySeq[Entity], playerStarts: List[gaymath.Point]) {
+final case class Level(x: Int, y: Int, width: Int, height: Int, deathBottom: Boolean, camMode: CamMode, entities: immut.ArraySeq[Entity], playerStarts: List[gaymath.Point]) {
     def addEntities(to: GayState): Unit = {
         for (entity <- entities) {
             // TODO : )
@@ -134,8 +134,8 @@ def addTilesToMap(tileX: Int, tileY: Int, map: mut.HashMap[(Int, Int), Int], til
     }
 }
 
-case class WorldStart(level: Int, pos: gaymath.Point)
-case class World(start: WorldStart, levels: List[Level], tiles: Tiles)
+final case class WorldStart(level: Int, pos: gaymath.Point)
+final case class World(start: WorldStart, levels: List[Level], tiles: Tiles)
 
 object World {
     def fromLDtk(map: LDtkMap): World = {

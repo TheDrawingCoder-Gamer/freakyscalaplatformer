@@ -19,11 +19,11 @@ import scala.util.Using
 import gay.menkissing.draw
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
 
-abstract class GayState(val manager: GameManager) extends GayTypedContainer[GayBasic] {
-    def start(): Unit
+abstract class GayState() extends GayTypedContainer[GayBasic] {
+  final def manager: GameManager = Game.instance.gamemanager
+
+  def start(): Unit
 
 
-    def close(): Unit
-
-    def frame: Int = manager.frame
+  def frame: Int = manager.frame
 }

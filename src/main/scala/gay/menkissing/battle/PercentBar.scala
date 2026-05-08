@@ -5,15 +5,15 @@ import engine.group.*
 import gay.menkissing.engine.GayRectSprite
 
 class PercentBar(fullWidth: Int, fullHeight: Int, inPadding: Int) extends GayObjectContainer {
-  private var _percentage: Int = 100
+  private var _percentage: Double = 1
   private var _padding: Int = inPadding
   private var _fullHeight: Int = fullHeight
   private var _fullWidth: Int = fullWidth
 
 
 
-  def percentage: Int = _percentage
-  def percentage_=(v: Int): Unit =
+  def percentage: Double = _percentage
+  def percentage_=(v: Double): Unit =
     _percentage = v
     updatePercentage()
 
@@ -41,11 +41,11 @@ class PercentBar(fullWidth: Int, fullHeight: Int, inPadding: Int) extends GayObj
   def recalculateSizes(): Unit =
     baseRect.graphicalWidth = _fullWidth
     baseRect.graphicalHeight = _fullHeight
-    healthRect.graphicalWidth = ((_fullWidth - _padding * 2) * (_percentage.toDouble / 100.0)).toInt
+    healthRect.graphicalWidth = ((_fullWidth - _padding * 2) * _percentage).toInt
     healthRect.graphicalHeight = _fullHeight - _padding * 2
     healthRect.x = this.x + _padding
     healthRect.y = this.y + _padding
 
   private def updatePercentage(): Unit =
-    healthRect.graphicalWidth = ((_fullWidth - _padding * 2) * (_percentage.toDouble / 100.0)).toInt
+    healthRect.graphicalWidth = ((_fullWidth - _padding * 2) * _percentage).toInt
 }

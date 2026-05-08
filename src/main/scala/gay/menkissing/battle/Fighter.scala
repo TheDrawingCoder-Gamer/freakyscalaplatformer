@@ -1,13 +1,28 @@
 package gay.menkissing.battle
 
+import gay.menkissing.engine.util.GaySignal1
+
 trait Fighter {
   def name: String
 
   def maxHP: Int
-  var health: Int
+  protected var _health: Int
+
+  val healthUpdateSignal: GaySignal1[Int] = GaySignal1()
+
+  def health: Int = _health
+  def health_=(v: Int): Unit =
+    _health = v
+    healthUpdateSignal.dispatch(v)
+
+  val spUpdateSignal: GaySignal1[Int] = GaySignal1()
 
   def maxSP: Int
-  var sp: Int
+  protected var _sp: Int
+  def sp: Int = _sp
+  def sp_=(v: Int): Unit =
+    _sp = v
+    spUpdateSignal.dispatch(v)
 
   def level: Int
 
@@ -99,8 +114,8 @@ class BasicFighter(val name: String,
                    val resistances: ResistElementMap,
                    val ailmentResistances: ResistAilmentMap = ResistAilmentMap(),
                    val skillPotentials: PotentialElementMap = PotentialElementMap()) extends Fighter {
-  var health: Int = maxHP
-  var sp: Int = maxSP
+  protected var _health: Int = maxHP
+  protected var _sp: Int = maxSP
   var isDown: Boolean = false
 
   val basicAttackSkill: Skill = Skill("Basic Attack", SkillEffect.Damage(basicPower / 2), basicAffinity, 90, SkillCost.HP(0), SkillTarget.Foe, personaSkill = false)

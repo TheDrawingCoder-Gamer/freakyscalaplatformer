@@ -18,14 +18,18 @@ import scala.collection.mutable
 import scala.util.Using
 import gay.menkissing.draw
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
+import gay.menkissing.engine.util.GayDestroyable
 
-open class GayBasic {
+open class GayBasic extends GayDestroyable {
     var visible: Boolean = true
     var active: Boolean = true
     var exists: Boolean = true
 
-    private val _cameras = SpriteCameras()
-    def cameras: SpriteCameras = _cameras
+    protected var _layer: Option[GayView] = None
+
+    def layer: GayView = _layer.getOrElse(Game.instance.gamemanager.cameras.defaultCam)
+    // cam is nullable
+    def setLayer(cam: GayView | Null): Unit = _layer = Option(cam)
 
     var destroyed: Boolean = false
 

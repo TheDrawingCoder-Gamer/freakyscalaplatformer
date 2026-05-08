@@ -360,7 +360,7 @@ object Skills {
 
 
   private def forceApplyAilment(ailment: Ailment, element: Element = Element.Ailment): Skill =
-    Skill(s"skill.debug.${ailment.id}", SkillEffect.ApplyAilment(ailment, 100), element, Skill.maxAccuracy, SkillCost.SP(1), SkillTarget
+    Skill(s"skill.debug.${ailment.id}", SkillEffect.ApplyAilment(ailment, 255), element, Skill.maxAccuracy, SkillCost.SP(1), SkillTarget
       .Foe, false)
 
   val forceApplyBurn = forceApplyAilment(Ailment.Burn, Element.Fire)

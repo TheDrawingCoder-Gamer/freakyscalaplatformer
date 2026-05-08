@@ -206,5 +206,21 @@
   "names.link.moon.first": "Sarah",
   "names.link.moon.last": "Knightly",
   "names.link.strength.first": "Walton",
-  "names.link.strength.last": ""
+  "names.link.strength.last": "",
+  "element.strike": "Strike",
+  "element.slash": "Slash",
+  "element.pierce": "Pierce",
+  "element.fire": "Fire",
+  "element.ice": "Ice",
+  "element.wind": "Wind",
+  "element.electric": "Electric",
+  "element.psy": "Psy",
+  "element.nuke": "Nuke",
+  "element.bless": "Bless",
+  "element.curse": "Curse",
+  "element.almighty": "Almighty",
+  "element.healing": "Healing",
+  "element.support": "Support",
+  "element.passive": "Passive",
+  "element.navigator": "Navigator"
 }
