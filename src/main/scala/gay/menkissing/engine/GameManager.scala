@@ -115,4 +115,17 @@ class GameManager() {
     currentState = stateStack.pop()
   }
 
+  /**
+    * Exit the current substate and enter a new one, without touching the stack.
+    *
+    * @param to
+    */
+  def swapSubstate(to: GayState): Unit = {
+    if (currentState != null) {
+      currentState.destroy()
+    }
+    currentState = to
+    currentState.start()
+  }
+
 }

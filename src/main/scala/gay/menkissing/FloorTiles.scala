@@ -1,9 +1,10 @@
 package gay.menkissing
 
 import gay.menkissing.common.math.Rect
+import gay.menkissing.engine.graphics.Texture
 
 // Tilemap that is considered solid when its _not_ defined
-class FloorTiles(tileMapTex: draw.Texture, tileSize: Int, tileMap: TileMap) 
+class FloorTiles(tileMapTex: Texture, tileSize: Int, tileMap: TileMap) 
   extends engine.GayTiles(tileMapTex, tileSize, tileMap) {
   
   

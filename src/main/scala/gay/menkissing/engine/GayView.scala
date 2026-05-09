@@ -15,7 +15,7 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
-import gay.menkissing.draw.Color
+import gay.menkissing.engine.graphics.Color
 
 
 class GayView(val width: Int, val height: Int) {
@@ -39,8 +39,18 @@ class GayView(val width: Int, val height: Int) {
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderbuffer)
   glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-  // How this gets rendered to the screen, relative to the full render size.
-  val renderMatrix = Matrix4f()
+  // Doing it like this so I may have a chance at removing the above framebuffer
+  private var _renderRect = gaymath.Rect(0, 0, draw.fullRenderWidth, draw.fullRenderHeight)
+  private var _renderTransform = new Matrix4f()
+
+  def renderRect: gaymath.Rect = _renderRect
+  def renderRect_=(v: gaymath.Rect): Unit =
+    _renderRect = v
+    _renderTransform.identity()
+    _renderTransform.translate(v.x.toFloat / draw.fullRenderWidth, v.y.toFloat / draw.fullRenderHeight, 0f)
+    _renderTransform.scaleXY(v.w.toFloat / draw.fullRenderWidth, v.h.toFloat / draw.fullRenderHeight)
+
+
 
   var viewPos = gaymath.Point(0, 0)
 
@@ -95,7 +105,8 @@ class GayView(val width: Int, val height: Int) {
 
     val mat = Matrix4f()
 
-    draw.bindTransform(Shaders.cutoutProgram, renderMatrix, mat)
+
+    draw.bindTransform(Shaders.cutoutProgram, _renderTransform, mat)
     
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)

@@ -18,9 +18,8 @@ import scala.collection.mutable
 import scala.util.Using
 import gay.menkissing.draw
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
-import gay.menkissing.engine.util.GayDestroyable
 
-open class GayBasic extends GayDestroyable {
+open class GayBasic {
     var visible: Boolean = true
     var active: Boolean = true
     var exists: Boolean = true

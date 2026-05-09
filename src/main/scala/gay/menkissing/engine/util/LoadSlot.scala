@@ -1,11 +1,13 @@
 package gay.menkissing.engine.util
 
+import java.io.Closeable
+
 /**
   * Used for loading shared objects like texture and audio packs
   *
   * @param factory
   */
-final class LoadSlot[A <: GayDestroyable](val factory: () => A) {
+final class LoadSlot[A <: Closeable](val factory: () => A) {
   var data: Option[A] = None
 
   def get: A =
@@ -17,6 +19,6 @@ final class LoadSlot[A <: GayDestroyable](val factory: () => A) {
         x
 
   def unload(): Unit =
-    data.foreach(_.destroy())
+    data.foreach(_.close())
     data = None
 }

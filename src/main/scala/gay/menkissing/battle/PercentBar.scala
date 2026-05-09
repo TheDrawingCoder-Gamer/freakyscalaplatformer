@@ -3,6 +3,7 @@ package battle
 
 import engine.group.*
 import gay.menkissing.engine.GayRectSprite
+import engine.graphics.Color
 
 class PercentBar(fullWidth: Int, fullHeight: Int, inPadding: Int) extends GayObjectContainer {
   private var _percentage: Double = 1
@@ -31,9 +32,9 @@ class PercentBar(fullWidth: Int, fullHeight: Int, inPadding: Int) extends GayObj
     _fullHeight = v
     recalculateSizes()
 
-  val baseRect = GayRectSprite(fullWidth, fullHeight, draw.Color.fromHex(0xFFDDDDDD))
+  val baseRect = GayRectSprite(fullWidth, fullHeight, Color.fromHex(0xFFDDDDDD))
   add(baseRect)
-  val healthRect = GayRectSprite(fullWidth - inPadding * 2, fullHeight - inPadding * 2, draw.Color.fromHex(0xFF00FF00))
+  val healthRect = GayRectSprite(fullWidth - inPadding * 2, fullHeight - inPadding * 2, Color.fromHex(0xFF00FF00))
   add(healthRect)
   healthRect.x += inPadding
   healthRect.y += inPadding

@@ -13,9 +13,10 @@ import scala.util.Using
 import org.lwjgl.stb.STBVorbisInfo
 import gay.menkissing.engine.Input
 import java.nio.ShortBuffer
+import java.io.Closeable
 
 
-class SoundBuffer(val pcm: ByteBuffer, format: SoundFormat, frequency: Int) {
+class SoundBuffer(val pcm: ByteBuffer, format: SoundFormat, frequency: Int) extends Closeable {
   alGetError()
   val buffer = alGenBuffers()
   {
@@ -31,7 +32,7 @@ class SoundBuffer(val pcm: ByteBuffer, format: SoundFormat, frequency: Int) {
       throw new RuntimeException("Error loading file: " + err)
     }
   }
-  def cleanup(): Unit =
+  def close(): Unit =
     alDeleteBuffers(buffer)
     memFree(pcm)
 }

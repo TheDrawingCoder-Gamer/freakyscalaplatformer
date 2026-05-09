@@ -215,5 +215,6 @@ class BattleGameState() extends GayState():
     }
 
   override def destroy(): Unit =
+    super.destroy()
     //backgroundSource.cleanup()
     ()

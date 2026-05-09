@@ -13,7 +13,7 @@ class GameState() extends GayState() {
       |The lowercase 'g' seems  suspiciously broken. God hates me and Im going to end up in hell where I belong
       |This genuinely may be causing a shitton of lag. Genuinely. I sincerly hope not.
       |God isn't real
-      |""".stripMargin, 30, draw.Color(1f, 1f, 1f, 1f))
+      |""".stripMargin, 30, engine.graphics.Color(1f, 1f, 1f, 1f))
   testObject.y = 50
   val testObject2 = GaySprite(GayTexture(Textures.preload.haxe))
 
@@ -44,7 +44,6 @@ class GameState() extends GayState() {
 
 
   }
-  def close(): Unit = ()
   def clean(killPlayer: Boolean = false): Unit = {
     for (obj <- members) {
       if (killPlayer || !obj.isInstanceOf[Player])
@@ -59,10 +58,6 @@ class GameState() extends GayState() {
     }
 
 
-  }
-  override def update(): Unit = {
-    super.update()
-    input1.update()
   }
 
 

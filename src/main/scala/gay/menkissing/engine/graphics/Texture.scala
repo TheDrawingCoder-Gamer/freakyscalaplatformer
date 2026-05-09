@@ -1,11 +1,13 @@
-package gay.menkissing.draw
+package gay.menkissing
+package engine.graphics
 
-import gay.menkissing.draw.Texture.RenderMode
+import draw.*
+
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.opengl.GL13.*
-import org.lwjgl.opengl.GL20.{glGetUniformLocation, glUniformMatrix4fv, glUseProgram}
-import org.lwjgl.opengl.GL30.glBindVertexArray
+import org.lwjgl.opengl.GL20.*
+import org.lwjgl.opengl.GL30.*
 import org.lwjgl.stb.STBImage.{stbi_image_free, stbi_load_from_memory, stbi_set_flip_vertically_on_load}
 import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
@@ -50,32 +52,28 @@ class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: T
     }
   }
 
-  def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
-    val program = renderMode match
-      case RenderMode.Cutout => Shaders.cutoutProgram
-      case RenderMode.Blend => Shaders.blendProgram
-    glUseProgram(program)
-    glBindVertexArray(squareVertices.VAO)
-    glActiveTexture(GL_TEXTURE0)
-    glBindTexture(GL_TEXTURE_2D, texture)
-
-    val transformLoc = glGetUniformLocation(program, "transform")
-    val texTransformLoc = glGetUniformLocation(program, "texTransform")
-
+  def texTransform(sx: Int, sy: Int, sw: Int, sh: Int): Matrix4f = {
     val transTexMtx = Matrix4f()
     transTexMtx.translate(sx.toFloat / width, sy.toFloat / height, 0)
-    transTexMtx.scale(sw.toFloat / width, sh.toFloat / height, 0)
-    Using.resource(stackPush()) { stack =>
-      val fb = stack.mallocFloat(16)
+    transTexMtx.scale(sw.toFloat / width, sh.toFloat / height, 1)
+    transTexMtx
+  }
 
-      glUniformMatrix4fv(transformLoc, false, matrices.get(fb))
 
-      val fb2 = stack.mallocFloat(16)
 
-      glUniformMatrix4fv(texTransformLoc, false, transTexMtx.get(fb2))
+  def bind(): Unit = {
+    glUseProgram(renderMode.program)
+    glActiveTexture(GL_TEXTURE0)
+    glBindTexture(GL_TEXTURE_2D, texture)
+    
+  }
 
-    }
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+  def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
+    bind()
+    
+    val transTexMtx = texTransform(sx, sy, sw, sh)
+    bindTransform(renderMode.program, matrices, transTexMtx)
+    squareVertices.draw()
   }
 
   def draw(matrices: Matrix4f, segment: TextureSegment): Unit = {
@@ -93,7 +91,15 @@ object Texture {
   enum RenderMode {
     case Cutout
     case Blend
+
+    def program: Int =
+      this match
+        case Cutout => Shaders.cutoutProgram
+        case Blend => Shaders.blendProgram
+      
   }
+  
+
   
   def apply(input: InputStream, min_filter: Int = GL_NEAREST, mag_filter: Int = GL_NEAREST, renderMode: RenderMode = RenderMode.Cutout): Texture = {
     // God hates us all

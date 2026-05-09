@@ -18,8 +18,9 @@ import scala.collection.mutable
 import scala.util.Using
 import gay.menkissing.draw
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
+import gay.menkissing.engine.graphics.Color
 
-class GayText(var text: String, var textHeight: Int, var color: draw.Color) extends GayObject {
+class GayText(var text: String, var textHeight: Int, var color: Color) extends GayObject {
     override def render(): Unit = {
         Game.instance.gamemanager.cameras.camList.withFilter(this.viewableOnCamera).foreach { cam =>
             val matrices = cam.makeStack()

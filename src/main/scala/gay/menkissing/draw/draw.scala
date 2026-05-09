@@ -18,6 +18,9 @@ import java.nio.*
 import scala.collection.mutable as mut
 import scala.collection.mutable.Stack
 import scala.util.Using
+import gay.menkissing.engine.graphics.*
+import gay.menkissing.engine.graphics.Color
+import gay.menkissing.engine.graphics.Texture
 
 val renderWidth = 320
 val renderHeight = 180
@@ -27,8 +30,6 @@ val scaleRatio = 5
 // size of assets that are fullscreen
 val fullRenderWidth = renderWidth * scaleRatio
 val fullRenderHeight = renderHeight * scaleRatio
-
-case class GraphicsContext(stack: MatrixStack, camera: gay.menkissing.common.math.Point)
 
 // objects r lazy, but once referenced all their fields r forced
 object Shaders {
@@ -54,8 +55,8 @@ object Shaders {
     val freakyCode =
       """
       #version 330 core
-      layout (location = 0) in vec3 aPos;
-      layout (location = 1) in vec2 aTexCoord;
+      layout (location = 0) in vec2 pos;
+      layout (location = 1) in vec2 texPos;
 
       out vec2 texCoord;
 
@@ -64,8 +65,8 @@ object Shaders {
 
       void main()
       {
-        gl_Position = transform * vec4(aPos, 1.0f);
-        texCoord = (texTransform * vec4(aTexCoord, 0, 1)).xy;
+        gl_Position = transform * vec4(pos, 0.0f, 1.0f);
+        texCoord = (texTransform * vec4(texPos, 0.0f, 1.0f)).xy;
       }
       """
     val shader = glCreateShader(GL_VERTEX_SHADER)
@@ -188,38 +189,38 @@ object VertInstances {
         0f, 1f
       )
     val indices = stack.ints(
-      0, 1, 2, 3, 0, 0
+      0, 1, 2, 3
       )
-    SimpleVerts(memByteBuffer(verts), memByteBuffer(indices))
+    Mesh2D.simple(memByteBuffer(verts), memByteBuffer(indices), PrimitiveType.LineLoop)
   }
 }
 
 
 lazy val squareVertices = Using.resource(stackPush()) { stack =>
   val verts = stack.floats(
-    1f,1f, 0.0f, 1.0f, 1.0f,
-    1f,0f, 0.0f, 1.0f, 0.0f,
-    0f,0f, 0.0f, 0.0f, 0.0f,
-    0f,1f, 0.0f, 0.0f, 1.0f
+    1f,1f, 1.0f, 1.0f,
+    1f,0f, 1.0f, 0.0f,
+    0f,0f, 0.0f, 0.0f,
+    0f,1f, 0.0f, 1.0f
     )
   val indices = stack.ints(
     0, 1, 3,
     1, 2, 3
     )
-  Vertices(memByteBuffer(verts), memByteBuffer(indices))
+  Mesh2D.textured(memByteBuffer(verts), memByteBuffer(indices), PrimitiveType.Triangles)
 }
 lazy val screenVertices = Using.resource(stackPush()) { stack =>
   val verts = stack.floats(
-     1f, 1f,0f, 1f, 1f,
-     1f,-1f,0f, 1f, 0f,
-    -1f,-1f,0f, 0f, 0f,
-    -1f, 1f,0f, 0f, 1f
+     1f, 1f, 1f, 1f,
+     1f,-1f,1f, 0f,
+    -1f,-1f,0f, 0f,
+    -1f, 1f,0f, 1f
     )
   val indices = stack.ints(
     0, 1, 3,
     1, 2, 3
     )
-  Vertices(memByteBuffer(verts), memByteBuffer(indices))
+  Mesh2D.textured(memByteBuffer(verts), memByteBuffer(indices), PrimitiveType.Triangles)
 }
 
 def setCircleVerts(vertBuf: FloatBuffer, idxBuf: IntBuffer, startIdx: Int, numSegments: Int = 20): Unit = {
@@ -235,7 +236,7 @@ lazy val circleEdgeVerticies = Using.resource(stackPush()) { stack =>
   val verts = stack.callocFloat(21 * 2)
   val indices = stack.callocInt(21)
   setCircleVerts(verts, indices, 0)
-  SimpleVerts(memByteBuffer(verts), memByteBuffer(indices))
+  Mesh2D.simple(memByteBuffer(verts), memByteBuffer(indices), GL_LINE_LOOP)
 }
 
 lazy val filledCircleVerticies = Using.resource(stackPush()) { stack =>
@@ -245,75 +246,8 @@ lazy val filledCircleVerticies = Using.resource(stackPush()) { stack =>
   verts.put(1, 0.0f)
   indices.put(0, 0)
   setCircleVerts(verts, indices, 1)
-  SimpleVerts(memByteBuffer(verts), memByteBuffer(indices))
+  Mesh2D.simple(memByteBuffer(verts), memByteBuffer(indices), GL_TRIANGLE_FAN)
 }
-// should free the buffer after this
-class Buffer(buf: ByteBuffer, kind: Int, expectedUse: Int) extends Closeable {
-  var closed = false
-  val buffer = glGenBuffers()
- 
-  glBindBuffer(kind, buffer)
-  glBufferData(kind, buf, expectedUse)
-
-  // A non idempotent version of close
-  def dispose(): Unit = {
-    glDeleteBuffers(buffer)
-  }
-
-  def close(): Unit = {
-    if (!closed) {
-      closed = true
-      dispose()
-    }
-  }
-}
-
-abstract class Vert(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Closeable {
-  var closed = false
-  val VAO = glGenVertexArrays()
-
-  glBindVertexArray(VAO)
-  val vertexBuffer = Buffer(vertBuf, GL_ARRAY_BUFFER, GL_STATIC_DRAW)
-
-  initPtrs()
-
-  val indexBuffer = Buffer(indexBuf, GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW)
-
-  glBindVertexArray(0)
-
-  def dispose(): Unit = {
-    vertexBuffer.dispose()
-    indexBuffer.dispose()
-    glDeleteVertexArrays(VAO)
-  }
-
-  def close(): Unit = {
-    if (!closed) {
-      closed = true
-      dispose()
-    }
-  }
-
-  def initPtrs(): Unit
-}
-
-class Vertices(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Vert(vertBuf, indexBuf) {
-  def initPtrs(): Unit = {
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * 4, 0)
-    glEnableVertexAttribArray(1)
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * 4, 3 * 4)
-  }
-}
-
-class SimpleVerts(vertBuf: ByteBuffer, indexBuf: ByteBuffer) extends Vert(vertBuf, indexBuf) {
-  def initPtrs(): Unit = {
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * 4, 0)
-  }
-}
-
-
 class MatrixStack extends Matrix4f {
   val stack = Stack[Matrix4f]()
 
@@ -414,22 +348,18 @@ object TextureAtlas {
 
 val tau: Double = math.Pi * 2
 def filledCircle(): Unit = {
-  glBindVertexArray(filledCircleVerticies.VAO)
-  glDrawElements(GL_TRIANGLE_FAN, 22, GL_UNSIGNED_INT, 0)
+  filledCircleVerticies.draw()
 }
 
 def circle(): Unit = {
-  glBindVertexArray(circleEdgeVerticies.VAO)
-  glDrawElements(GL_LINE_LOOP, 21, GL_UNSIGNED_INT, 0)
+  circleEdgeVerticies.draw()
 }
 
 def rect(): Unit = {
-  glBindVertexArray(VertInstances.squareOutline.VAO)
-  glDrawElements(GL_LINE_STRIP, 6, GL_UNSIGNED_INT, 0)
+  VertInstances.squareOutline.draw()
 }
 def filledRect(): Unit = {
-  glBindVertexArray(squareVertices.VAO)
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+  squareVertices.draw()
 }
 
 def setSolidColor(color: Color, transform: Matrix4f): Unit = {

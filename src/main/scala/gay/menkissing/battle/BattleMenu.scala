@@ -3,7 +3,8 @@ package gay.menkissing.battle
 import gay.menkissing.Textures
 import gay.menkissing.battle.BattleMenu.{BattleOption, SkillBattleOption}
 import gay.menkissing.engine.*
-import gay.menkissing.draw.{Color, TextureAtlas}
+import gay.menkissing.draw.{TextureAtlas}
+import gay.menkissing.engine.graphics.Color
 import gay.menkissing.engine.group.{GayObjectContainer, GayTypedObjectContainer}
 
 abstract class BattleMenu extends GayTypedObjectContainer[GayObject] {
@@ -93,8 +94,7 @@ object BattleMenu {
     val txt = GayText(text, 32, secondaryColor)
     txt.y = 4
     txt.x = 10
-    val rectGraphic = GayRect(400, optionHeight, primaryColor)
-    val rect = GaySprite(rectGraphic)
+    val rect = GayRectSprite(400, optionHeight, primaryColor)
 
     add(rect)
     add(txt)
@@ -104,10 +104,10 @@ object BattleMenu {
       _hovered = v
       if (v) {
         txt.color = primaryColor
-        rectGraphic.color = secondaryColor
+        rect.setColor(secondaryColor)
       } else {
         txt.color = secondaryColor
-        rectGraphic.color = primaryColor
+        rect.setColor(primaryColor)
       }
 
   }

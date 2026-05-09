@@ -4,8 +4,9 @@ package battle
 import gay.menkissing.engine.GaySprite
 import engine.group.*
 import gay.menkissing.engine.GayTexture
+import gay.menkissing.engine.graphics.Texture
 
-class Enemy(val fighter: Fighter, texture: draw.Texture) extends GayObjectContainer {
+class Enemy(val fighter: Fighter, texture: Texture) extends GayObjectContainer {
   val spr = GaySprite(GayTexture(texture))
   spr.scaleX = draw.scaleRatio
   spr.scaleY = draw.scaleRatio

@@ -1,10 +1,9 @@
 package gay.menkissing.engine.graphics
 
-import gay.menkissing.draw.Texture
 import scala.collection.mutable
-import gay.menkissing.engine.util.GayDestroyable
+import java.io.Closeable
 
-abstract class TexturePack extends GayDestroyable {
+abstract class TexturePack extends Closeable {
   private val textures = mutable.Buffer[Texture]()
   
   extension (texture: Texture)
@@ -13,7 +12,7 @@ abstract class TexturePack extends GayDestroyable {
       texture
   
   
-  def destroy(): Unit =
+  def close(): Unit =
     textures.foreach(_.close())
     textures.clear()
 }

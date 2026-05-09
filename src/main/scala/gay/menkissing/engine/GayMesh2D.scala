@@ -1,12 +1,24 @@
 package gay.menkissing
 package engine
 
-import gay.menkissing.draw.Vertices
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL11.*
+import gay.menkissing.engine.graphics.Mesh2D
+import gay.menkissing.engine.graphics.Color
+import gay.menkissing.engine.graphics.GayMaterial
 
-class GayMesh2D(val mesh: Vertices, override var graphicalWidth: Int, override var graphicalHeight: Int) extends GayObject {
-  var color: draw.Color = draw.Color.fromHex(0xFFFFFFFF)
+/**
+  * 
+  *
+  * @param mesh
+  * @param graphicalWidth
+  * @param graphicalHeight
+  */
+class GayMesh2D(val mesh: Mesh2D, override var graphicalWidth: Int, override var graphicalHeight: Int) extends GayObject {
+  var material: GayMaterial = GayMaterial.FlatColor(Color.fromHex(0xFFFFFFFF))
+
+  def setColor(v: Color): Unit =
+    material = GayMaterial.FlatColor(v)
   override def render(): Unit =
     if (!this.visible || !this.exists)
       return
@@ -18,9 +30,8 @@ class GayMesh2D(val mesh: Vertices, override var graphicalWidth: Int, override v
     val screenPos = getScreenPosition(cam)
     stack.translate(screenPos.x.toFloat, screenPos.y.toFloat, zIndex.toFloat)
     stack.scale(graphicalWidth, graphicalHeight, 1)
-    draw.setSolidColor(color, stack)
-    glBindVertexArray(mesh.VAO)
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0)
+    material.bind(stack)
+    mesh.draw()
     
 
   

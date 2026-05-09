@@ -18,6 +18,8 @@ import org.lwjgl.system.MemoryUtil.*
 import scala.collection.mutable
 import scala.util.Using
 import gay.menkissing.draw
+import gay.menkissing.engine.graphics.Color
+import gay.menkissing.engine.graphics.Texture
 
 
 
@@ -28,13 +30,7 @@ sealed trait GayGraphic {
     def render(matrices: Matrix4f): Unit
 }
 
-final class GayRect(var width: Int, var height: Int, var color: draw.Color) extends GayGraphic {
-    override def render(matrices: Matrix4f): Unit =
-        draw.setSolidColor(color, matrices)
-        draw.filledRect()
-}
-
-final case class GayTexture(tex: draw.Texture) extends GayGraphic {
+final case class GayTexture(tex: Texture) extends GayGraphic {
     def width = tex.width
     def height = tex.height
     def render(matrices: Matrix4f): Unit = {
@@ -42,7 +38,7 @@ final case class GayTexture(tex: draw.Texture) extends GayGraphic {
     }
 }
 
-class GayAtlas(val atlas: draw.TextureAtlas, var current: String) extends GayGraphic {
+final class GayAtlas(val atlas: draw.TextureAtlas, var current: String) extends GayGraphic {
     def width = atlas(current).w
     def height = atlas(current).h
     def render(matrices: Matrix4f): Unit = {

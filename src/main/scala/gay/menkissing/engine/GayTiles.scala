@@ -4,8 +4,9 @@ import gay.menkissing.common.math as gaymath
 import gay.menkissing.common.math.Rect
 import gay.menkissing.{TileMap, draw}
 import gay.menkissing.draw.MatrixStack
+import gay.menkissing.engine.graphics.Texture
 
-class GayTiles(val tileMapTex: draw.Texture, val tileSize: Int, val tileMap: TileMap) extends GayObject {
+class GayTiles(val tileMapTex: Texture, val tileSize: Int, val tileMap: TileMap) extends GayObject {
   val tileMapWidth: Int = tileMapTex.width / tileSize
   val tileMapHeight: Int = tileMapTex.height / tileSize
 

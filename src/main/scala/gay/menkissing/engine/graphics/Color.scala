@@ -1,4 +1,4 @@
-package gay.menkissing.draw
+package gay.menkissing.engine.graphics
 
 import org.lwjgl.opengl.GL20.glUniform4f
 

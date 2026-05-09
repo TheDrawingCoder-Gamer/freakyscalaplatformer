@@ -4,8 +4,9 @@ import org.lwjgl.openal.*
 import AL10.*
 
 import org.joml.Vector3f
+import java.io.Closeable
 
-class SoundSource(loop: Boolean, relative: Boolean) {
+class SoundSource(loop: Boolean, relative: Boolean) extends Closeable {
   val sourceId: Int = alGenSources()
   if (loop) {
     alSourcei(sourceId, AL_LOOPING, AL_TRUE)
@@ -41,7 +42,7 @@ class SoundSource(loop: Boolean, relative: Boolean) {
   def stop(): Unit =
     alSourceStop(sourceId)
 
-  def cleanup(): Unit =
+  def close(): Unit =
     stop()
     alDeleteSources(sourceId)
 

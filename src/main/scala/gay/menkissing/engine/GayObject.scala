@@ -140,7 +140,7 @@ open class GayObject extends GayBasic {
     
 
     def viewableOnCamera(cam: GayView): Boolean =
-        visible && cam == this.layer
+        exists && visible && cam == this.layer
 
     def touch(player: Player): Unit = ()
     def canTouch(player: Player): Boolean = false
