@@ -21,6 +21,7 @@ import scala.util.Using
 import gay.menkissing.engine.graphics.*
 import gay.menkissing.engine.graphics.Color
 import gay.menkissing.engine.graphics.Texture
+import gay.menkissing.common.math as gaymath
 
 val renderWidth = 320
 val renderHeight = 180
@@ -302,12 +303,11 @@ class MatrixStack extends Matrix4f {
 }
 
 
-final case class TextureSegment(x: Int, y: Int, w: Int, h: Int)
 
-class TextureAtlas(val texture: Texture) extends mut.HashMap[String, TextureSegment]() {
+class TextureAtlas(val texture: Texture) extends mut.HashMap[String, gaymath.Rect]() {
 
   def add(name: String, x: Int, y: Int, w: Int, h: Int): Unit = {
-    val seg = TextureSegment(x, y, w, h)
+    val seg = gaymath.Rect(x, y, w, h)
     update(name, seg)
   }
 
@@ -415,19 +415,21 @@ def drawText(text: String, color: Color, transform: Matrix4f): Unit = {
         val ypos = y - glyph.bearing.y
         val w = glyph.size.x
         val h = glyph.size.y
-        glBindTexture(GL_TEXTURE_2D, glyph.texID)
-        glBindBuffer(GL_ARRAY_BUFFER, TextRendering.textVBO)
-        Using(stackPush()) { stack =>
-          val buf = stack.floats(
-            xpos    , ypos, 0f, 0f,
-            xpos + w,     ypos,     1f, 0f,
-            xpos, ypos + h,     0f, 1f,
-            xpos + w,     ypos + h, 1f, 1f,
-          )
-          glBufferSubData(GL_ARRAY_BUFFER, 0, buf)
+        if (glyph.texID != 0) {
+          glBindTexture(GL_TEXTURE_2D, glyph.texID)
+          glBindBuffer(GL_ARRAY_BUFFER, TextRendering.textVBO)
+          Using(stackPush()) { stack =>
+            val buf = stack.floats(
+              xpos    , ypos, 0f, 0f,
+              xpos + w,     ypos,     1f, 0f,
+              xpos, ypos + h,     0f, 1f,
+              xpos + w,     ypos + h, 1f, 1f,
+            )
+            glBufferSubData(GL_ARRAY_BUFFER, 0, buf)
+          }
+          glBindBuffer(GL_ARRAY_BUFFER, 0)
+          glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
         }
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
         x += (glyph.advance >> 6)
       }
   }

@@ -16,9 +16,54 @@ import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
 import gay.menkissing.engine.graphics.Color
+import scala.collection.mutable
+import java.io.Closeable
 
 
-class GayView(val width: Int, val height: Int) {
+trait GayView extends Closeable {
+    // Doing it like this so I may have a chance at removing the above framebuffer
+  protected var _renderRect = gaymath.Rect(0, 0, draw.fullRenderWidth, draw.fullRenderHeight)
+  protected var _renderTransform = new Matrix4f()
+
+  def renderRect: gaymath.Rect = _renderRect
+  def renderRect_=(v: gaymath.Rect): Unit =
+    _renderRect = v
+    _renderTransform.identity()
+    _renderTransform.translate(v.x.toFloat / draw.fullRenderWidth, v.y.toFloat / draw.fullRenderHeight, 0f)
+    _renderTransform.scaleXY(v.w.toFloat / draw.fullRenderWidth, v.h.toFloat / draw.fullRenderHeight)
+
+
+  var viewPos: gaymath.Point = gaymath.Point(0, 0)
+  var worldSize: gaymath.Point
+
+
+  var clearColor: Color = Color.fromHex(0x00000000)
+  var useDepth: Boolean = false
+
+  val toRender = mutable.Buffer.empty[GayBasic]
+
+  def makeStack(): draw.MatrixStack = {
+    val stack = draw.MatrixStack()
+    stack.mul(_renderTransform)
+    stack.ortho(0, worldSize.x, worldSize.y, 0, Short.MinValue.toFloat, Short.MaxValue.toFloat)
+    stack
+  }
+
+  def submitForRender(obj: GayBasic): Unit =
+    toRender.append(obj)
+
+  def hotswapTo(): Unit =
+    GayG.currentCamera = this
+
+  def startFrame(): Unit =
+    toRender.clear()
+
+  def finalizeFrame(): Unit =
+    hotswapTo()
+    toRender.foreach(_.render())
+}
+
+class PixelPerfectGayView(val width: Int, val height: Int) extends GayView {
   val framebufferTex = glGenTextures()
   glBindTexture(GL_TEXTURE_2D, framebufferTex)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
@@ -39,50 +84,31 @@ class GayView(val width: Int, val height: Int) {
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderbuffer)
   glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-  // Doing it like this so I may have a chance at removing the above framebuffer
-  private var _renderRect = gaymath.Rect(0, 0, draw.fullRenderWidth, draw.fullRenderHeight)
-  private var _renderTransform = new Matrix4f()
-
-  def renderRect: gaymath.Rect = _renderRect
-  def renderRect_=(v: gaymath.Rect): Unit =
-    _renderRect = v
-    _renderTransform.identity()
-    _renderTransform.translate(v.x.toFloat / draw.fullRenderWidth, v.y.toFloat / draw.fullRenderHeight, 0f)
-    _renderTransform.scaleXY(v.w.toFloat / draw.fullRenderWidth, v.h.toFloat / draw.fullRenderHeight)
-
-
-
-  var viewPos = gaymath.Point(0, 0)
 
   /**
    * How large the camera is in world size. Defaults to texture size. 
   */
   var worldSize = gaymath.Point(width, height)
 
-  // Should we draw using the depth buffer, or should we always draw things on top of each other in order?
-  var useDepth: Boolean = false
 
-  /**
-    * What color should we clear to?
-    * By default, transparent.
-    */
-  var clearColor: Color = Color.fromHex(0x00000000)
   
-  def free(): Unit = {
+  def close(): Unit = {
     glDeleteFramebuffers(framebuffer)
     glDeleteRenderbuffers(renderbuffer)
     glDeleteTextures(framebufferTex)
 
   }
 
-  def clear(): Unit = {
+  override def startFrame(): Unit = {
+    super.startFrame()
     hotswapTo()
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
   }
   
   // WE are constantly changing our frame buffer
-  def hotswapTo(): Unit = {
+  override def hotswapTo(): Unit = {
+    super.hotswapTo()
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
     glViewport(0, 0, width, height)
     if (useDepth) {
@@ -93,11 +119,12 @@ class GayView(val width: Int, val height: Int) {
     
   }
 
-  def finalizeRender(): Unit = {
+  override def finalizeFrame(): Unit = {
     import draw.Shaders
+    super.finalizeFrame()
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     glUseProgram(Shaders.cutoutProgram)
-    glBindVertexArray(draw.screenVertices.VAO)
+    draw.screenVertices.bind()
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, framebufferTex)
     glViewport(Game.paddingLeft, Game.paddingTop, Game.windowWidth, Game.windowHeight)
@@ -106,15 +133,29 @@ class GayView(val width: Int, val height: Int) {
     val mat = Matrix4f()
 
 
-    draw.bindTransform(Shaders.cutoutProgram, _renderTransform, mat)
+    draw.bindTransform(Shaders.cutoutProgram, mat, mat)
     
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
   }
-  
-  def makeStack(): draw.MatrixStack = {
-    val stack = draw.MatrixStack()
-    stack.ortho(0, worldSize.x, worldSize.y, 0, Short.MinValue.toFloat, Short.MaxValue.toFloat)
-    stack
-  }
 }
+
+class DirectGayView(val width: Int, val height: Int) extends GayView {
+  var worldSize = gaymath.Point(width, height)
+
+  def close(): Unit = ()
+
+  // TODO: clear color?
+  override def startFrame(): Unit = super.startFrame()
+
+  override def hotswapTo(): Unit =
+    super.hotswapTo()
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    glViewport(Game.paddingLeft, Game.paddingTop, Game.windowWidth, Game.windowHeight)
+    if (useDepth) {
+      glEnable(GL_DEPTH_TEST)
+    } else {
+      glDisable(GL_DEPTH_TEST)
+    }
+}
+

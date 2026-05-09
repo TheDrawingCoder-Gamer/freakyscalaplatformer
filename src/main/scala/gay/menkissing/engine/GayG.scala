@@ -15,4 +15,5 @@ object GayG {
   }
 
   def manager: GameManager = Game.instance.gamemanager
+  var currentCamera: GayView = null
 }

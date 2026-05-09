@@ -39,6 +39,10 @@ open class GayBasic {
     def update(): Unit = ()
     def render(): Unit = ()
 
+    def collectForRender(): Unit =
+      if (this.exists && this.visible)
+        this.layer.submitForRender(this)
+
     def destroy(): Unit = {
         // freaky!
         destroyed = true

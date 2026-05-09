@@ -58,27 +58,35 @@ object TextRendering {
         if (err != FT_Err_Ok) {
           println("Freetype failed to load glyph: " + FT_Error_String(err))
         }
-
-        val texture = glGenTextures()
-        glBindTexture(GL_TEXTURE_2D, texture)
         val width = face.glyph().bitmap().width()
         val rows = face.glyph().bitmap().rows()
-        glTexImage2D(
-          GL_TEXTURE_2D,
-          0,
-          GL_RED,
-          width,
-          rows,
-          0,
-          GL_RED,
-          GL_UNSIGNED_BYTE,
-          face.glyph().bitmap().buffer(width * rows)
-        )
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        val texture = 
+          if (width != 0) {
+            val t = glGenTextures()
+            glBindTexture(GL_TEXTURE_2D, t)
+            glTexImage2D(
+              GL_TEXTURE_2D,
+              0,
+              GL_RED,
+              width,
+              rows,
+              0,
+              GL_RED,
+              GL_UNSIGNED_BYTE,
+              face.glyph().bitmap().buffer(width * rows)
+            )
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            t
+          } else 0
+          
+        
+        
+        
 
         val glyph = Glyph(texture, gaymath.Point(width, rows), gaymath.Point(face.glyph().bitmap_left(), face.glyph().bitmap_top()), face.glyph().advance().x.toInt)
         map(c) = glyph
@@ -95,7 +103,7 @@ object TextRendering {
   val textVBO = glGenBuffers()
   glBindVertexArray(textVAO)
   glBindBuffer(GL_ARRAY_BUFFER, textVBO)
-  glBufferData(GL_ARRAY_BUFFER, 4 * 6 * 4, GL_DYNAMIC_DRAW)
+  glBufferData(GL_ARRAY_BUFFER, 4 * 6 * 4, GL_STREAM_DRAW)
   glEnableVertexAttribArray(0)
   glVertexAttribPointer(0, 4, GL_FLOAT, false, 4 * 4, 0)
   glBindBuffer(GL_ARRAY_BUFFER, 0)

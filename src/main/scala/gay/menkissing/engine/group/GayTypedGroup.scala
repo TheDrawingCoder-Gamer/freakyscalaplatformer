@@ -34,6 +34,8 @@ class GayTypedGroup[T <: GayBasic] extends GayBasic {
   override def render(): Unit =
     members.withFilter(i => i.exists && i.visible).foreach(_.render())
 
+  override def collectForRender(): Unit =
+    members.withFilter(i => i.exists && i.visible).foreach(_.collectForRender())
 
   def onMemberAdded(member: T): Unit = ()
 

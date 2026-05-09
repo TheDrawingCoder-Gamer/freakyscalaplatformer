@@ -23,7 +23,7 @@ class GayMesh2D(val mesh: Mesh2D, override var graphicalWidth: Int, override var
     if (!this.visible || !this.exists)
       return
     
-    val cam = this.layer
+    val cam = GayG.currentCamera
     val stack = cam.makeStack()
     cam.hotswapTo()
 

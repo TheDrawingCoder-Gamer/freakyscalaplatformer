@@ -6,16 +6,16 @@ import scala.collection.mutable
 open class GayTypedObjectContainer[T <: GayObject] extends GayTypedObjectGroup[T] {
   override val group: GayTypedContainer[T] = GayTypedObjectContainer.ObjectContainer[T](this)
 
-  override def render(): Unit = {
+
+  override def collectForRender(): Unit =
     val oldDefaults = Game.instance.gamemanager.cameras.defaultCam
     _layer.foreach { it =>
       Game.instance.gamemanager.cameras.defaultCam = it
     }
     
-    super.render()
+    super.collectForRender()
     
     Game.instance.gamemanager.cameras.defaultCam = oldDefaults
-  }
   
   
 }

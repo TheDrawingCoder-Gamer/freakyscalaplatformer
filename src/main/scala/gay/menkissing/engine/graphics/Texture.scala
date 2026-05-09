@@ -2,6 +2,7 @@ package gay.menkissing
 package engine.graphics
 
 import draw.*
+import common.math as gaymath
 
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL11.*
@@ -68,15 +69,19 @@ class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: T
     
   }
 
-  def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
-    bind()
-    
+  // Draw, while reusing the currently bound texture.
+  def drawUnsafe(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit =
     val transTexMtx = texTransform(sx, sy, sw, sh)
     bindTransform(renderMode.program, matrices, transTexMtx)
     squareVertices.draw()
+
+  def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
+    bind()
+    
+    drawUnsafe(matrices, sx, sy, sw, sh)
   }
 
-  def draw(matrices: Matrix4f, segment: TextureSegment): Unit = {
+  def draw(matrices: Matrix4f, segment: gaymath.Rect): Unit = {
     draw(matrices, segment.x, segment.y, segment.w, segment.h)
   }
 

@@ -42,7 +42,7 @@ class GaySprite(private var _graphic: GayGraphic) extends GayObject {
     if (!this.visible || !this.exists)
       return
     val width = graphicalWidth
-    val cam = this.layer
+    val cam = GayG.currentCamera
     val stack = cam.makeStack()
     cam.hotswapTo()
 

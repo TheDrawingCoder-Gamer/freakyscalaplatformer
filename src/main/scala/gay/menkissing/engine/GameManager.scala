@@ -55,11 +55,11 @@ class GameManager() {
     }
   }
 
-  val pixelCam = GayView(draw.renderWidth, draw.renderHeight)
+  val pixelCam = PixelPerfectGayView(draw.renderWidth, draw.renderHeight)
   // Our pixel game shouldn't be using any blended textures.
   pixelCam.useDepth = true
   cameras.defaultCam = pixelCam
-  val fullCam = GayView(draw.fullRenderWidth, draw.fullRenderHeight)
+  val fullCam = DirectGayView(draw.fullRenderWidth, draw.fullRenderHeight)
   // Our UI camera on the other hand, _will_ be using translucency.
   fullCam.useDepth = false
 
@@ -75,9 +75,9 @@ class GameManager() {
     if (currentState != null) {
       GayG.input.update()
       currentState.update()
-      cameras.camList.foreach(_.clear())
-      currentState.render()
-      cameras.camList.foreach(_.finalizeRender())
+      cameras.camList.foreach(_.startFrame())
+      currentState.collectForRender()
+      cameras.camList.foreach(_.finalizeFrame())
     }
     frame += 1
     frame %= 32767

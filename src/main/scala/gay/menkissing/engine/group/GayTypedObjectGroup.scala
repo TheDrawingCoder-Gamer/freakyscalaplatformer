@@ -78,6 +78,9 @@ open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
 
   override def render(): Unit =
     group.render()
+
+  override def collectForRender(): Unit =
+    group.collectForRender()
 }
 
 type GayObjectGroup = GayTypedObjectGroup[GayObject]

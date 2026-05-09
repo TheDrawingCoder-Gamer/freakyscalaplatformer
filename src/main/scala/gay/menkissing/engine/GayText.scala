@@ -22,16 +22,16 @@ import gay.menkissing.engine.graphics.Color
 
 class GayText(var text: String, var textHeight: Int, var color: Color) extends GayObject {
     override def render(): Unit = {
-        Game.instance.gamemanager.cameras.camList.withFilter(this.viewableOnCamera).foreach { cam =>
-            val matrices = cam.makeStack()
-            cam.hotswapTo()
+      val cam = GayG.currentCamera
+      val matrices = cam.makeStack()
+      cam.hotswapTo()
 
-            matrices.translate(x.toFloat, y.toFloat, zIndex.toFloat)
-            val ratio = GayText.ratioFor(textHeight)
-            matrices.scale(ratio, ratio, 1f)
+      matrices.translate(x.toFloat, y.toFloat, zIndex.toFloat)
+      val ratio = GayText.ratioFor(textHeight)
+      matrices.scale(ratio, ratio, 1f)
 
-            draw.drawText(text, color, matrices)
-        }
+      draw.drawText(text, color, matrices)
+        
 
     }
 }
