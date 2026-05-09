@@ -36,71 +36,12 @@ enum Ailment(val id: String, val technicals: List[Element] = List(), val actiona
 
 }
 
-final case class AilmentMap[V]
-( freeze: V,
-  burn: V,
-  shock: V,
-  dizzy: V,
-  sleep: V,
-  forget: V,
-  confuse: V,
-  fear: V,
-  rage: V,
-  brainwash: V,
-  despair: V,
-  lightDeath: V,
-  darkDeath: V
-) {
-  def apply(ailment: Ailment): V = {
-    ailment match
-      case Ailment.Freeze => freeze
-      case Ailment.Burn => burn
-      case Ailment.Shock => shock
-      case Ailment.Dizzy => dizzy
-      case Ailment.Sleep => sleep
-      case Ailment.Forget => forget
-      case Ailment.Confuse => confuse
-      case Ailment.Fear => fear
-      case Ailment.Rage => rage
-      case Ailment.Brainwash => brainwash
-      case Ailment.Despair => despair
-      case Ailment.LightDeath => lightDeath
-      case Ailment.DarkDeath => darkDeath
-  }
-  def updated(ailment: Ailment, value: V): AilmentMap[V] = {
-    ailment match
-      case Ailment.Freeze => copy(freeze = value)
-      case Ailment.Burn => copy(burn = value)
-      case Ailment.Shock => copy(shock = value)
-      case Ailment.Dizzy => copy(dizzy = value)
-      case Ailment.Sleep => copy(sleep = value)
-      case Ailment.Forget => copy(forget = value)
-      case Ailment.Confuse => copy(confuse = value)
-      case Ailment.Fear => copy(fear = value)
-      case Ailment.Rage => copy(rage = value)
-      case Ailment.Brainwash => copy(brainwash = value)
-      case Ailment.Despair => copy(despair = value)
-      case Ailment.LightDeath => copy(lightDeath = value)
-      case Ailment.DarkDeath => copy(darkDeath = value)
-  }
-}
+type AilmentMap[V] = Map[Ailment, V]
 
-final case class DefaultAilmentMap[V](default: V) {
-  def apply
-  ( freeze: V = default,
-    burn: V = default,
-    shock: V = default,
-    dizzy: V = default,
-    sleep: V = default,
-    forget: V = default,
-    confuse: V = default,
-    fear: V = default,
-    rage: V = default,
-    brainwash: V = default,
-    despair: V = default,
-    lightDeath: V = default,
-    darkDeath: V = default): AilmentMap[V] = AilmentMap(freeze, burn, shock, dizzy, sleep, forget, confuse, fear, rage, brainwash, despair, lightDeath, darkDeath)
-}
 
-val ResistAilmentMap = DefaultAilmentMap[AilmentResist](AilmentResist.Normal)
+
 type ResistAilmentMap = AilmentMap[AilmentResist]
+object ResistAilmentMap {
+  def apply(kv: (Ailment, AilmentResist)*): ResistAilmentMap =
+    Map(kv*).withDefaultValue(AilmentResist.Normal)
+}

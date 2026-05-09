@@ -205,15 +205,15 @@ final case class Skill
             case StatStage.Down => 1.4
             case StatStage.Neutral => 1.0
             case StatStage.Up => 0.6
-        val potential = caster.skillPotentials.get(element).get
-        val resist = target.resistances.get(element).get
+        val potential = caster.skillPotentials(element)
+        val resist = target.resistances(element)
         
         val modified = base.toDouble * (power.toDouble / 100) * attackStage * defenseStage * potential.damageMultiplier * resist.resistNumber.getOrElse(0.0)
         val res = powerBonus(modified.toInt)
         target.health -= res
       case SkillEffect.Healing(percent, power) =>
         val root = target.maxHP * percent + power
-        val base = root * caster.skillPotentials.healing.healMultiplier.get
+        val base = root * caster.skillPotentials(Element.Healing).healMultiplier.get
         val res = powerBonus(base.toInt)
         target.health += res
       case SkillEffect.ReduceHPTo1 =>

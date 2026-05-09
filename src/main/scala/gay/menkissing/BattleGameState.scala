@@ -46,8 +46,15 @@ class BattleGameState() extends GayState():
       List(Skills.slash.powerSlash, Skills.ice.weak, Skills.ice.bloody),
       Element.Slash,
       60,
-      resistances = ResistElementMap(ice = ResistLevel.Resist, fire = ResistLevel.Weak),
-      skillPotentials = PotentialElementMap(ice = SkillPotential.Up1, slash = SkillPotential.Up1, fire = SkillPotential.Down1)
+      resistances = ResistElementMap(
+        Element.Fire -> ResistLevel.Weak,
+        Element.Ice -> ResistLevel.Resist
+      ),
+      skillPotentials = PotentialElementMap(
+        Element.Fire -> SkillPotential.Down1,
+        Element.Ice -> SkillPotential.Up1,
+        Element.Slash -> SkillPotential.Up1
+      )
       )
 
   val portrait = BattlePortrait(mcFighter, Textures.preload.lucaPortrait)
@@ -64,7 +71,7 @@ class BattleGameState() extends GayState():
       List(Skills.slash.powerSlash, Skills.electric.weak),
       Element.Strike,
       60,
-      resistances = ResistElementMap(ice = ResistLevel.Weak)
+      resistances = ResistElementMap(Element.Ice -> ResistLevel.Weak)
     )
 
   val enemy = Enemy(enemyFighter, Textures.preload.testEnemy)
