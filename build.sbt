@@ -1,7 +1,6 @@
 val scala3Version = "3.8.3"
 
-// TODO: Upgrading this to 3.4.1 causes a segfault?
-val lwjglVersion = "3.3.3"
+val lwjglVersion = "3.3.4"
 val isOsx = System.getProperty("os.name").toLowerCase().contains("osx")
 val lwjglNatives = {
   val name = System.getProperty("os.name", "unknown").toLowerCase()
@@ -49,7 +48,8 @@ lazy val root = project
       "lwjgl-stb",
       "lwjgl-opengl",
       "lwjgl-bgfx",
-      "lwjgl-freetype"
+      "lwjgl-freetype",
+      "lwjgl-msdfgen"
     ).map("org.lwjgl" % _ % lwjglVersion),
     libraryDependencies += "org.joml" % "joml" % "1.10.8",
     libraryDependencies += "com.lihaoyi" %% "upickle" % "4.4.3",
@@ -61,9 +61,12 @@ lazy val root = project
       "lwjgl-stb",
       "lwjgl-opengl",
       "lwjgl-bgfx",
-      "lwjgl-freetype"
+      "lwjgl-freetype",
+      "lwjgl-msdfgen"
     ).map("org.lwjgl" % _ % lwjglVersion % Runtime classifier lwjglNatives),
     libraryDependencies += "org.typelevel" %% "cats-core" % "2.13.0",
     Compile / run / fork := true,
-
+    Compile / run / envVars := Map("__GL_THREADED_OPTIMIZATIONS" -> "0", "XDG_SESSION_TYPE" -> "x11"),
+    assembly / mainClass := Some("gay.menkissing.main"),
+    assemblyMergeStrategy := { _ => MergeStrategy.preferProject }
   )

@@ -17,9 +17,9 @@ import java.io.*
 import java.nio.*
 import scala.util.Using
 
-class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: Texture.RenderMode) extends Closeable {
+class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: Texture.RenderMode, inverted: Boolean = false) extends Closeable {
   var closed = false
-  stbi_set_flip_vertically_on_load(false)
+  stbi_set_flip_vertically_on_load(inverted)
   val texture = glGenTextures()
 
   buf.flip()
@@ -106,12 +106,12 @@ object Texture {
   
 
   
-  def apply(input: InputStream, min_filter: Int = GL_NEAREST, mag_filter: Int = GL_NEAREST, renderMode: RenderMode = RenderMode.Cutout): Texture = {
+  def apply(input: InputStream, min_filter: Int = GL_NEAREST, mag_filter: Int = GL_NEAREST, renderMode: RenderMode = RenderMode.Cutout, inverted: Boolean = false): Texture = {
     // God hates us all
     val bytes = input.readAllBytes()
     val buf = memAlloc(bytes.length)
     buf.put(bytes)
-    val tex = new Texture(buf, min_filter, mag_filter, renderMode)
+    val tex = new Texture(buf, min_filter, mag_filter, renderMode, inverted)
     memFree(buf)
     tex
   }

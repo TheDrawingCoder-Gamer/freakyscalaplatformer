@@ -21,6 +21,9 @@ import java.io.Closeable
 
 
 trait GayView extends Closeable {
+  def width: Int
+  def height: Int
+
     // Doing it like this so I may have a chance at removing the above framebuffer
   protected var _renderRect = gaymath.Rect(0, 0, draw.fullRenderWidth, draw.fullRenderHeight)
   protected var _renderTransform = new Matrix4f()
@@ -136,12 +139,15 @@ class PixelPerfectGayView(val width: Int, val height: Int) extends GayView {
     draw.bindTransform(Shaders.cutoutProgram, mat, mat)
     
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+    draw.screenVertices.unsafeDraw()
   }
 }
 
-class DirectGayView(val width: Int, val height: Int) extends GayView {
-  var worldSize = gaymath.Point(width, height)
+class DirectGayView(pixelWidth: Int, pixelHeight: Int) extends GayView {
+  def width: Int = Game.windowWidth
+  def height: Int = Game.windowHeight
+
+  var worldSize = gaymath.Point(pixelWidth, pixelHeight)
 
   def close(): Unit = ()
 

@@ -92,7 +92,7 @@ object BattleMenu {
     private var _hovered: Boolean = false
 
     val txt = GayText(text, 32, secondaryColor)
-    txt.y = 4
+    txt.y = 0
     txt.x = 10
     val rect = GayRectSprite(400, optionHeight, primaryColor)
 

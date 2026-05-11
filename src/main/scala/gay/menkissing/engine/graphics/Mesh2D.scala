@@ -82,8 +82,9 @@ abstract class DirectMesh2D(vertBuf: ByteBuffer, val drawSize: Int, val primitiv
 
   glBindVertexArray(VAO)
   val vertexBuffer = GPUBuffer(vertBuf, GL_ARRAY_BUFFER, GL_STATIC_DRAW)
-  glBindVertexArray(0)
+  
   initPtrs()
+  glBindVertexArray(0)
   def close(): Unit =
     vertexBuffer.close()
     glDeleteVertexArrays(VAO)
@@ -100,9 +101,9 @@ abstract class DirectMesh2D(vertBuf: ByteBuffer, val drawSize: Int, val primitiv
 }
 
 object DirectMesh2D {
-  def textured(vertBuf: ByteBuffer, primitiveType: Int): Mesh2D =
-    val size = vertBuf.asFloatBuffer().remaining() / 4
-    new DirectMesh2D(vertBuf, size, primitiveType) {
+  def textured(vertBuf: FloatBuffer, primitiveType: Int): Mesh2D =
+    val size = vertBuf.remaining() / 4
+    new DirectMesh2D(memByteBuffer(vertBuf), size, primitiveType) {
       def initPtrs(): Unit =
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * 4, 0)
@@ -110,9 +111,9 @@ object DirectMesh2D {
         glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * 4, 2 * 4)
 
     }
-  def simple(vertBuf: ByteBuffer, primitiveType: Int): Mesh2D =
-    val size = vertBuf.asFloatBuffer().remaining() / 2
-    new DirectMesh2D(vertBuf, size, primitiveType) {
+  def simple(vertBuf: FloatBuffer, primitiveType: Int): Mesh2D =
+    val size = vertBuf.remaining() / 2
+    new DirectMesh2D(memByteBuffer(vertBuf), size, primitiveType) {
       def initPtrs(): Unit =
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * 4, 0)
@@ -120,16 +121,16 @@ object DirectMesh2D {
 }
 
 object Mesh2D {
-  def textured(vertBuf: ByteBuffer, indexBuf: ByteBuffer, primitiveType: Int): Mesh2D =
-    new IndexedMesh2D(vertBuf, indexBuf, primitiveType) {
+  def textured(vertBuf: FloatBuffer, indexBuf: IntBuffer, primitiveType: Int): Mesh2D =
+    new IndexedMesh2D(memByteBuffer(vertBuf), memByteBuffer(indexBuf), primitiveType) {
       def initPtrs(): Unit =
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * 4, 0)
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * 4, 2 * 4)
     }
-  def simple(vertBuf: ByteBuffer, indexBuf: ByteBuffer, primitiveType: Int): Mesh2D =
-    new IndexedMesh2D(vertBuf, indexBuf, primitiveType) {
+  def simple(vertBuf: FloatBuffer, indexBuf: IntBuffer, primitiveType: Int): Mesh2D =
+    new IndexedMesh2D(memByteBuffer(vertBuf), memByteBuffer(indexBuf), primitiveType) {
       def initPtrs(): Unit =
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * 4, 0)

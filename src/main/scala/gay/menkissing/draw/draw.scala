@@ -34,6 +34,38 @@ val fullRenderHeight = renderHeight * scaleRatio
 
 // objects r lazy, but once referenced all their fields r forced
 object Shaders {
+  private def makeShader(source: String, kind: Int): Int =
+    val shader = glCreateShader(kind)
+    glShaderSource(shader, source)
+    glCompileShader(shader)
+    shader
+  
+  private def vertexShader(source: String): Int =
+    makeShader(source, GL_VERTEX_SHADER)
+  
+  private def fragmentShader(source: String): Int =
+    makeShader(source, GL_FRAGMENT_SHADER)
+
+  private val fontVertexShader = {
+    val source = 
+      """
+      #version 330 core
+      layout (location = 0) in vec4 vertex;
+      out vec2 texCoord;
+
+      uniform mat4 projection;
+
+      void main()
+      {
+        gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+        texCoord = vertex.zw;
+      }
+      """
+    val shader = glCreateShader(GL_VERTEX_SHADER)
+    glShaderSource(shader, source)
+    glCompileShader(shader)
+    shader
+  }
   private val textVertexShader = {
     val source =
       """#version 330 core
@@ -161,6 +193,59 @@ object Shaders {
     glCompileShader(shader)
     shader
   }
+  private val msdfFragmentShader = {
+    val source =
+      """
+      #version 330 core
+      in vec2 texCoord;
+      out vec4 color;
+
+      uniform sampler2D text;
+      uniform vec4 textColor;
+      uniform vec2 aemRange;
+      uniform float inverseWidth;
+      uniform float thresholdEm;
+
+      float median(float r, float g, float b) {
+        return max(min(r, g), min(max(r, g), b));
+      }
+
+      void main() 
+      {
+        vec3 msd = texture(text, texCoord).rgb;
+        float sd = median(msd.r, msd.g, msd.b);
+        float distanceEm = mix(aemRange[1], aemRange[0], sd);
+        float opacity = clamp((thresholdEm - distanceEm) * inverseWidth + 0.5, 0.0, 1.0);
+        color = textColor * opacity;
+      }
+      """
+    val shader = glCreateShader(GL_FRAGMENT_SHADER)
+    glShaderSource(shader, source)
+    glCompileShader(shader)
+    shader
+  }
+  private val tsdfFragmentShader = {
+    fragmentShader(
+      """
+      #version 330 core
+      in vec2 texCoord;
+      out vec4 color;
+
+      uniform sampler2D text;
+      uniform vec4 textColor;
+      uniform vec2 aemRange;
+      uniform float inverseWidth;
+      uniform float thresholdEm;
+
+      void main() {
+        float sd = texture(text, texCoord).r;
+        float distanceEm = mix(aemRange[1], aemRange[0], sd);
+        float opacity = clamp((thresholdEm - distanceEm) * inverseWidth + 0.5, 0.0, 1.0);
+        color = textColor * opacity;
+      }
+      """
+    )
+  }
   private def makeProgram(vertex: Int, fragment: Int): Int =
     val program = glCreateProgram()
     glAttachShader(program, vertex)
@@ -172,6 +257,9 @@ object Shaders {
   val blendProgram = makeProgram(defaultVertexShader, blendFragmentShader)
   val solidColorProgram = makeProgram(defaultVertexShader, solidColorFragmentShader)
   val textProgram = makeProgram(textVertexShader, textFragmentShader)
+  val fontSoftMaskProgram = makeProgram(fontVertexShader, textFragmentShader)
+  val fontMSDFProgram = makeProgram(fontVertexShader, msdfFragmentShader)
+  val fontTSDFProgram = makeProgram(fontVertexShader, tsdfFragmentShader)
   
   glDeleteShader(defaultVertexShader)
   glDeleteShader(cutoutFragmentShader)
@@ -179,6 +267,8 @@ object Shaders {
   glDeleteShader(solidColorFragmentShader)
   glDeleteShader(textVertexShader)
   glDeleteShader(textFragmentShader)
+  glDeleteShader(fontVertexShader)
+  glDeleteShader(msdfFragmentShader)
 }
 
 object VertInstances {
@@ -189,55 +279,43 @@ object VertInstances {
         0f, 0f,
         0f, 1f
       )
-    val indices = stack.ints(
-      0, 1, 2, 3
-      )
-    Mesh2D.simple(memByteBuffer(verts), memByteBuffer(indices), PrimitiveType.LineLoop)
+    DirectMesh2D.simple(verts, PrimitiveType.LineLoop)
   }
 }
 
 
 lazy val squareVertices = Using.resource(stackPush()) { stack =>
   val verts = stack.floats(
-    1f,1f, 1.0f, 1.0f,
-    1f,0f, 1.0f, 0.0f,
     0f,0f, 0.0f, 0.0f,
-    0f,1f, 0.0f, 1.0f
-    )
-  val indices = stack.ints(
-    0, 1, 3,
-    1, 2, 3
-    )
-  Mesh2D.textured(memByteBuffer(verts), memByteBuffer(indices), PrimitiveType.Triangles)
+    1f,0f, 1.0f, 0.0f,
+    0f,1f, 0.0f, 1.0f,
+    1f,1f, 1.0f, 1.0f,
+  )
+  DirectMesh2D.textured(verts, PrimitiveType.TriangleStrip)
 }
 lazy val screenVertices = Using.resource(stackPush()) { stack =>
   val verts = stack.floats(
-     1f, 1f, 1f, 1f,
-     1f,-1f,1f, 0f,
-    -1f,-1f,0f, 0f,
-    -1f, 1f,0f, 1f
-    )
-  val indices = stack.ints(
-    0, 1, 3,
-    1, 2, 3
-    )
-  Mesh2D.textured(memByteBuffer(verts), memByteBuffer(indices), PrimitiveType.Triangles)
+    -1f,-1f, 0.0f, 0.0f,
+    1f,-1f, 1.0f, 0.0f,
+    -1f,1f, 0.0f, 1.0f,
+    1f,1f, 1.0f, 1.0f,
+  )
+  DirectMesh2D.textured(verts, PrimitiveType.TriangleStrip)
 }
 
-def setCircleVerts(vertBuf: FloatBuffer, idxBuf: IntBuffer, startIdx: Int, numSegments: Int = 20): Unit = {
+def setCircleVerts(vertBuf: FloatBuffer, startIdx: Int, numSegments: Int = 20): Unit = {
   for (i <- 0 to numSegments) {
     val theta = i.toDouble * tau / numSegments 
     vertBuf.put(startIdx * 2 + i * 2, math.cos(theta).toFloat)
     vertBuf.put(startIdx * 2 + i * 2 + 1, math.sin(theta).toFloat)
-    idxBuf.put(startIdx + i, startIdx + i)
   }
 }
 
 lazy val circleEdgeVerticies = Using.resource(stackPush()) { stack =>
   val verts = stack.callocFloat(21 * 2)
   val indices = stack.callocInt(21)
-  setCircleVerts(verts, indices, 0)
-  Mesh2D.simple(memByteBuffer(verts), memByteBuffer(indices), GL_LINE_LOOP)
+  setCircleVerts(verts, 0)
+  DirectMesh2D.simple(verts, PrimitiveType.LineLoop)
 }
 
 lazy val filledCircleVerticies = Using.resource(stackPush()) { stack =>
@@ -246,8 +324,8 @@ lazy val filledCircleVerticies = Using.resource(stackPush()) { stack =>
   verts.put(0, 0.0f)
   verts.put(1, 0.0f)
   indices.put(0, 0)
-  setCircleVerts(verts, indices, 1)
-  Mesh2D.simple(memByteBuffer(verts), memByteBuffer(indices), GL_TRIANGLE_FAN)
+  setCircleVerts(verts, 1)
+  DirectMesh2D.simple(verts, PrimitiveType.TriangleFan)
 }
 class MatrixStack extends Matrix4f {
   val stack = Stack[Matrix4f]()

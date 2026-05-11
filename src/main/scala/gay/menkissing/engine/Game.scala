@@ -23,6 +23,7 @@ class Game {
 
   if ( !glfwInit() )
     throw new IllegalStateException("Unable to initialize GLFW")
+    
 
   glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
@@ -51,6 +52,7 @@ class Game {
 
   glfwSetFramebufferSizeCallback(window, Game.resizeWindow)
 
+  /*
   Using.resource(stackPush()) { stack =>
     val pwidth = stack.mallocInt(1)
     val pheight = stack.mallocInt(1)
@@ -67,6 +69,7 @@ class Game {
     )
 
   }
+  */
   glfwMakeContextCurrent(window)
   glfwSwapInterval(1)
   glfwShowWindow(window)

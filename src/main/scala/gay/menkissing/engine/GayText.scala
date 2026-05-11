@@ -19,24 +19,19 @@ import scala.util.Using
 import gay.menkissing.draw
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
 import gay.menkissing.engine.graphics.Color
+import gay.menkissing.Fonts
+import gay.menkissing.engine.text.Font
 
-class GayText(var text: String, var textHeight: Int, var color: Color) extends GayObject {
+class GayText(var text: String, var textHeight: Int, var color: Color, var font: Font = Font.defaultFont) extends GayObject {
     override def render(): Unit = {
       val cam = GayG.currentCamera
       val matrices = cam.makeStack()
       cam.hotswapTo()
 
       matrices.translate(x.toFloat, y.toFloat, zIndex.toFloat)
-      val ratio = GayText.ratioFor(textHeight)
-      matrices.scale(ratio, ratio, 1f)
 
-      draw.drawText(text, color, matrices)
+      font.drawString(text, color, matrices, textHeight)
         
 
     }
-}
-
-object GayText {
-    def ratioFor(height: Int): Float =
-        height.toFloat / draw.TextRendering.textSize.toFloat
 }
