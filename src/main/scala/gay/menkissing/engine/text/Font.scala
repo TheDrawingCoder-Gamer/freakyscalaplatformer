@@ -19,14 +19,13 @@ import org.lwjgl.system.MemoryUtil.*
 import gay.menkissing.engine.graphics.Texture
 import gay.menkissing.engine.graphics.Color
 import scala.util.Using
-import gay.menkissing.draw.TextRendering
 import upickle.default.*
 import org.joml.Vector3f
-import gay.menkissing.draw.Shaders
 import gay.menkissing.engine.text.Font.FontKind
+import gay.menkissing.engine.graphics.Shader
 
-class Font(val texture: Texture, val atlas: FontAtlas, val overrideProgram: Option[Int] = None) {
-  private def program: Int =
+class Font(val texture: Texture, val atlas: FontAtlas, val overrideProgram: Option[Shader] = None) {
+  private def program: Shader =
     overrideProgram.getOrElse(atlas.atlas.kind.program)
   private def getScreenScale(textHeight: Int): Float =
     val glyph = atlas.glyphs.find(_._2.texInfo.isDefined).get._2.texInfo.get
@@ -36,31 +35,25 @@ class Font(val texture: Texture, val atlas: FontAtlas, val overrideProgram: Opti
 
 
   def drawString(text: String, color: Color, matrices: Matrix4f, textSize: Int): Unit =
-    glUseProgram(atlas.atlas.kind.program)
-    val projectionLocation = glGetUniformLocation(program, "projection")
-    Using.resource(stackPush()) { stack =>
-      val fb = stack.mallocFloat(16)
-      glUniformMatrix4fv(projectionLocation, false, matrices.get(fb))
-    }
+    val program = atlas.atlas.kind.program
+    program.use()
+    program.getLocation("projection").bind(matrices)
 
-    val colorLoc = glGetUniformLocation(program, "textColor")
-    color.bind(colorLoc)
+    program.getLocation("textColor").bind(color)
+
     if (atlas.atlas.kind.isSDF) {
-      val inverseWidthLoc = glGetUniformLocation(atlas.atlas.kind.program, "inverseWidth")
       val antialiasPerEm = atlas.atlas.size / (Game.windowWidth.toDouble / GayG.currentCamera.width)
       val scale = getScreenScale(textSize)
       // println(scale)
-      glUniform1f(inverseWidthLoc, (scale * antialiasPerEm).toFloat)
-      val aemRangeLocation = glGetUniformLocation(atlas.atlas.kind.program, "aemRange")
+      program.getLocation("inverseWidth").bind((scale * antialiasPerEm).toFloat)
       val aemRange = atlas.atlas.aemRange.get
-      glUniform2f(aemRangeLocation, aemRange.low.toFloat, aemRange.high.toFloat)
-      val thresholdLocation = glGetUniformLocation(atlas.atlas.kind.program, "thresholdEm")
-      glUniform1f(thresholdLocation, 0.0)
+      program.getLocation("aemRange").bind(aemRange.low.toFloat, aemRange.high.toFloat)
+      program.getLocation("thresholdEm").bind(0.0f)
     }
 
     
     glActiveTexture(GL_TEXTURE0)
-    glBindVertexArray(TextRendering.textVAO)
+    glBindVertexArray(Font.textVAO)
     texture.bind()
 
     var x = 0.0
@@ -82,7 +75,7 @@ class Font(val texture: Texture, val atlas: FontAtlas, val overrideProgram: Opti
             val texWidth = texInfo.atlasBounds.w.toFloat / atlas.atlas.width
             val texHeight = texInfo.atlasBounds.h.toFloat / atlas.atlas.height
 
-            glBindBuffer(GL_ARRAY_BUFFER, TextRendering.textVBO)
+            glBindBuffer(GL_ARRAY_BUFFER, Font.textVBO)
             Using.resource(stackPush()) { stack =>
               val buf = stack.floats(
                 xpos, ypos, texX, texY,
@@ -121,14 +114,16 @@ object Font {
         case SoftMask => false
       
 
-    def program: Int =
+    def program: Shader =
       this match
         // Ignore the true SDF in the MTSDF
-        case MSDF | MTSDF => Shaders.fontMSDFProgram
-        case SDF => Shaders.fontTSDFProgram
-        case SoftMask => Shaders.fontSoftMaskProgram
+        case MSDF | MTSDF => Shader.fontMSDFProgram
+        case SDF => Shader.fontTSDFProgram
+        case SoftMask => Shader.fontSoftMaskProgram
       
   }
+
+  
 
   def load(texPath: String, atlasPath: String): Font =
     val texture = Texture(getClass.getResourceAsStream(texPath), GL_NEAREST, GL_NEAREST, Texture.RenderMode.Blend, false)
@@ -136,4 +131,14 @@ object Font {
     Font(texture, atlas)
 
   lazy val defaultFont: Font = Font.load("/fonts/default/font.png", "/fonts/default/font.json")
+
+  val textVAO = glGenVertexArrays()
+  val textVBO = glGenBuffers()
+  glBindVertexArray(textVAO)
+  glBindBuffer(GL_ARRAY_BUFFER, textVBO)
+  glBufferData(GL_ARRAY_BUFFER, 4 * 6 * 4, GL_STREAM_DRAW)
+  glEnableVertexAttribArray(0)
+  glVertexAttribPointer(0, 4, GL_FLOAT, false, 4 * 4, 0)
+  glBindBuffer(GL_ARRAY_BUFFER, 0)
+  glBindVertexArray(0)
 }

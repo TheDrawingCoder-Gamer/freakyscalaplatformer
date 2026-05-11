@@ -63,7 +63,7 @@ class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: T
 
 
   def bind(): Unit = {
-    glUseProgram(renderMode.program)
+    renderMode.program.use()
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, texture)
     
@@ -72,7 +72,7 @@ class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: T
   // Draw, while reusing the currently bound texture.
   def drawUnsafe(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit =
     val transTexMtx = texTransform(sx, sy, sw, sh)
-    bindTransform(renderMode.program, matrices, transTexMtx)
+    renderMode.program.bindTransform(matrices, transTexMtx)
     squareVertices.draw()
 
   def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
@@ -97,10 +97,10 @@ object Texture {
     case Cutout
     case Blend
 
-    def program: Int =
+    def program: Shader.SharedTextureShader =
       this match
-        case Cutout => Shaders.cutoutProgram
-        case Blend => Shaders.blendProgram
+        case Cutout => Shader.cutoutProgram
+        case Blend => Shader.blendProgram
       
   }
   

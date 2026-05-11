@@ -39,8 +39,7 @@ class GayTiles(val tileMapTex: Texture, val tileSize: Int, val tileMap: TileMap)
             matrices.translate(0, 0, j * tileSize + (tileSize / 2))
           }
           matrices.scaleXY(tileSize, tileSize)
-          draw.bindTransform(tileMapTex.renderMode.program, matrices, 
-          tileMapTex.texTransform((t % tileMapWidth) * tileSize, math.floorDiv(t, tileMapWidth) * tileSize, tileSize, tileSize))
+          tileMapTex.renderMode.program.bindTransform(matrices, tileMapTex.texTransform((t % tileMapWidth) * tileSize, math.floorDiv(t, tileMapWidth) * tileSize, tileSize, tileSize))
           draw.squareVertices.unsafeDraw()
           
         }

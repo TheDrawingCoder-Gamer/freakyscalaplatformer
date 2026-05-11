@@ -18,6 +18,7 @@ import scala.util.Using
 import gay.menkissing.engine.graphics.Color
 import scala.collection.mutable
 import java.io.Closeable
+import gay.menkissing.engine.graphics.Shader
 
 
 trait GayView extends Closeable {
@@ -123,10 +124,9 @@ class PixelPerfectGayView(val width: Int, val height: Int) extends GayView {
   }
 
   override def finalizeFrame(): Unit = {
-    import draw.Shaders
     super.finalizeFrame()
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
-    glUseProgram(Shaders.cutoutProgram)
+    Shader.cutoutProgram.use()
     draw.screenVertices.bind()
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, framebufferTex)
@@ -136,7 +136,7 @@ class PixelPerfectGayView(val width: Int, val height: Int) extends GayView {
     val mat = Matrix4f()
 
 
-    draw.bindTransform(Shaders.cutoutProgram, mat, mat)
+    Shader.cutoutProgram.bindTransform(mat, mat)
     
 
     draw.screenVertices.unsafeDraw()

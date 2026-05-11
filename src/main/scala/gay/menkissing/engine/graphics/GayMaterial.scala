@@ -21,7 +21,7 @@ object GayMaterial {
     def bind(transform: Matrix4f): Unit =
       texture.bind()
       val texTransform = texture.texTransform(uv.x, uv.y, uv.w, uv.h)
-      draw.bindTransform(texture.renderMode.program, transform, texTransform)
+      texture.renderMode.program.bindTransform(transform, texTransform)
   }
 
   object Tex2D {
