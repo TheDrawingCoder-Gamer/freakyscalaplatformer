@@ -19,10 +19,8 @@ import scala.util.Using
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
 
 abstract class GayState() extends GayTypedContainer[GayBasic] {
-  final def manager: GameManager = Game.instance.gamemanager
-
   def start(): Unit
 
 
-  def frame: Int = manager.frame
+  def frame: Int = GayG.frame
 }

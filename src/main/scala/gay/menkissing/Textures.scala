@@ -15,4 +15,6 @@ final class PreloadTextures extends TexturePack {
     val elements = engine.graphics.Texture(getClass.getResourceAsStream("/elements.png")).register()
     val lucaPortrait = engine.graphics.Texture(getClass.getResourceAsStream("/lucaportrait.png")).register()
     val testEnemy = engine.graphics.Texture(getClass.getResourceAsStream("/testenemy.png")).register()
+    val placeholderPortrait = engine.graphics.Texture(getClass.getResourceAsStream("/placeholderportrait.png")).register()
+    
 }

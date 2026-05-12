@@ -25,7 +25,7 @@ open class GayBasic {
 
     protected var _layer: Option[GayView] = None
 
-    def layer: GayView = _layer.getOrElse(Game.instance.gamemanager.cameras.defaultCam)
+    def layer: GayView = _layer.getOrElse(GayG.cameras.defaultCam)
     // cam is nullable
     def setLayer(cam: GayView | Null): Unit = _layer = Option(cam)
 

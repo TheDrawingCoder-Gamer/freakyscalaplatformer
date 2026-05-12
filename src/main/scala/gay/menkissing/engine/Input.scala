@@ -32,17 +32,17 @@ class Input(val player: Byte) {
       glfwGetGamepadState(gamepadId, state) 
     }
     val left = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_LEFT) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_LEFT) != 0
+        (player == 0 && glfwGetKey(Game.window, GLFW_KEY_LEFT) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_LEFT) != 0
     val right = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_RIGHT) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_RIGHT) != 0
+        (player == 0 && glfwGetKey(Game.window, GLFW_KEY_RIGHT) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_RIGHT) != 0
     val up = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_UP) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_UP) != 0
+        (player == 0 && glfwGetKey(Game.window, GLFW_KEY_UP) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_UP) != 0
     val down = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_DOWN) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_DOWN) != 0
+        (player == 0 && glfwGetKey(Game.window, GLFW_KEY_DOWN) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_DPAD_DOWN) != 0
     val confirm = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_Z) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_A) != 0
+        (player == 0 && glfwGetKey(Game.window, GLFW_KEY_Z) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_A) != 0
     val cancel = 
-        (player == 0 && glfwGetKey(Game.instance.window, GLFW_KEY_X) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_X) != 0
+        (player == 0 && glfwGetKey(Game.window, GLFW_KEY_X) == GLFW_PRESS) || state.buttons(GLFW_GAMEPAD_BUTTON_X) != 0
     if (left) {
         if (right) {
             if (axisXTurned) {

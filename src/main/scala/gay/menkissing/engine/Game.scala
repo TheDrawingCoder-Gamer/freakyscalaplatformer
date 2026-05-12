@@ -14,11 +14,11 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
-import gay.menkissing.engine.graphics.GraphicG
 
-inline def renderWidth: Int = GraphicG.renderWidth
-inline def renderHeight: Int = GraphicG.renderHeight
-class Game {
+class Game(val width: Int, val height: Int) {
+  Game.initialWidth = width
+  Game.initialHeight = height
+
   GLFWErrorCallback.createPrint(System.err).set()
 
   if ( !glfwInit() )
@@ -29,14 +29,15 @@ class Game {
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
 
 
-  val window = glfwCreateWindow(Game.windowWidth, Game.windowHeight, "gayme", NULL, NULL)
+  Game.window = glfwCreateWindow(width, height, "gayme", NULL, NULL)
+  Game.aspectRatio = width.toDouble / height.toDouble
 
-  if (window == NULL)
+  if (Game.window == NULL)
     throw new RuntimeException("Failed to create GLFW Window")
 
   val input1 = Input(0)
   
-  glfwSetKeyCallback(window, (window, key, scancode, action, mods) => {
+  glfwSetKeyCallback(Game.window, (window, key, scancode, action, mods) => {
     if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
       glfwSetWindowShouldClose(window, true)
   })
@@ -50,7 +51,7 @@ class Game {
     }
   })
 
-  glfwSetFramebufferSizeCallback(window, Game.resizeWindow)
+  glfwSetFramebufferSizeCallback(Game.window, Game.resizeWindow)
 
   /*
   Using.resource(stackPush()) { stack =>
@@ -70,26 +71,29 @@ class Game {
 
   }
   */
-  glfwMakeContextCurrent(window)
+  glfwMakeContextCurrent(Game.window)
   glfwSwapInterval(1)
-  glfwShowWindow(window)
+  glfwShowWindow(Game.window)
 
   GL.createCapabilities()
   val (_) = GayG.alManager
 
   val gamemanager = new GameManager()
   
+  GayG.initialCamera = new DirectGayView(width, height)
+  GayG.cameras.add(GayG.initialCamera, replaceAsDefault = true)
+
   val timer = new SyncTimer()
   def loop(): Unit = {
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
     glViewport(Game.paddingLeft, Game.paddingTop, Game.windowWidth, Game.windowHeight)
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(Game.window)) {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       gamemanager.run()
 
-      glfwSwapBuffers(window)
+      glfwSwapBuffers(Game.window)
       glfwPollEvents()
 
       timer.sync(60)
@@ -99,8 +103,8 @@ class Game {
   def run(): Unit = {
     loop()
 
-    glfwFreeCallbacks(window)
-    glfwDestroyWindow(window)
+    glfwFreeCallbacks(Game.window)
+    glfwDestroyWindow(Game.window)
 
     glfwTerminate()
     glfwSetErrorCallback(null).free()
@@ -108,12 +112,17 @@ class Game {
 }
 
 object Game {
-  var windowWidth: Int = renderWidth * 4
-  var windowHeight: Int = renderHeight * 4
+  var initialWidth: Int = 0
+  var initialHeight: Int = 0
+
+  var windowWidth: Int = 0
+  var windowHeight: Int = 0
   var paddingLeft: Int = 0
   var paddingTop: Int = 0
 
-  val aspectRatio: Double = GraphicG.renderWidth.toDouble / GraphicG.renderHeight.toDouble
+  var window: Long = 0
+
+  var aspectRatio: Double = 1.0
 
   val resizeWindow: GLFWFramebufferSizeCallback = new GLFWFramebufferSizeCallback():
     override def invoke(window: Long, width: Int, height: Int): Unit =
@@ -129,6 +138,4 @@ object Game {
         windowWidth = math.round(windowHeight * aspectRatio).toInt
         paddingLeft = (width - windowWidth) / 2
 
-  
-  lazy val instance = new Game()
 }

@@ -17,7 +17,6 @@ import org.lwjgl.system.MemoryUtil.*
 
 import scala.collection.mutable
 import scala.util.Using
-import gay.menkissing.draw
 import gay.menkissing.engine.graphics.Color
 import gay.menkissing.engine.graphics.Texture
 import gay.menkissing.engine.graphics.TextureAtlas

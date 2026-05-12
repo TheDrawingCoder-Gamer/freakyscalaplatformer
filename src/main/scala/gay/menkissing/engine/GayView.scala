@@ -20,7 +20,6 @@ import java.io.Closeable
 import gay.menkissing.engine.graphics.Shader
 import gay.menkissing.engine.graphics.Mesh2D
 import gay.menkissing.engine.graphics.MatrixStack
-import gay.menkissing.engine.graphics.GraphicG
 
 
 trait GayView extends Closeable {
@@ -28,15 +27,15 @@ trait GayView extends Closeable {
   def height: Int
 
     // Doing it like this so I may have a chance at removing the above framebuffer
-  protected var _renderRect = gaymath.Rect(0, 0, GraphicG.fullRenderWidth, GraphicG.fullRenderHeight)
+  protected var _renderRect = gaymath.Rect(0, 0, Game.initialWidth, Game.initialHeight)
   protected var _renderTransform = new Matrix4f()
 
   def renderRect: gaymath.Rect = _renderRect
   def renderRect_=(v: gaymath.Rect): Unit =
     _renderRect = v
     _renderTransform.identity()
-    _renderTransform.translate(v.x.toFloat / GraphicG.fullRenderWidth, v.y.toFloat / GraphicG.fullRenderHeight, 0f)
-    _renderTransform.scaleXY(v.w.toFloat / GraphicG.fullRenderWidth, v.h.toFloat / GraphicG.fullRenderHeight)
+    _renderTransform.translate(v.x.toFloat / Game.initialWidth, v.y.toFloat / Game.initialHeight, 0f)
+    _renderTransform.scaleXY(v.w.toFloat / Game.initialWidth, v.h.toFloat / Game.initialHeight)
 
 
   var viewPos: gaymath.Point = gaymath.Point(0, 0)

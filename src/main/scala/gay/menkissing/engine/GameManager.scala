@@ -14,12 +14,12 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.collection.mutable
-import gay.menkissing.engine.graphics.GraphicG
 
 /**
  * Manages the entire game. SUPPOSED to be agnostic of the current game state
  */
 class GameManager() {
+  GayG.globalManager = this
   val stateStack: mutable.Stack[GayState] = mutable.Stack.empty
   var currentState: GayState = null
 
@@ -29,46 +29,8 @@ class GameManager() {
   glEnable(GL_DEPTH_TEST)
   glDepthFunc(GL_LEQUAL)
 
-  object cameras {
-    val camList = mutable.Buffer[GayView]()
-    var defaultCam: GayView = null
 
-    def add(cam: GayView): GayView = {
-      camList.append(cam)
-      cam
-    }
-    def insert(cam: GayView, position: Int): GayView = {
-      if (position >= camList.length) {
-        return add(cam)
-      }
-      val pos =
-        if (position < 0)
-          position + camList.length
-        else
-          position
-
-
-      camList.insert(pos, cam)
-
-
-      cam
-    }
-  }
-
-  val pixelCam = PixelPerfectGayView(GraphicG.renderWidth, GraphicG.renderHeight)
-  // Our pixel game shouldn't be using any blended textures.
-  pixelCam.useDepth = true
-  cameras.defaultCam = pixelCam
-  val fullCam = DirectGayView(GraphicG.fullRenderWidth, GraphicG.fullRenderHeight)
-  // Our UI camera on the other hand, _will_ be using translucency.
-  fullCam.useDepth = false
-
-  cameras.add(pixelCam)
-  cameras.add(fullCam)
-
-
-  var frame = 0
-
+  GayG.frame = 0
 
 
   def run(): Unit = {
@@ -76,12 +38,12 @@ class GameManager() {
       GayG.input.update()
       GayG.plugins.update()
       currentState.update()
-      cameras.camList.foreach(_.startFrame())
+      GayG.cameras.camList.foreach(_.startFrame())
       currentState.collectForRender()
-      cameras.camList.foreach(_.finalizeFrame())
+      GayG.cameras.camList.foreach(_.finalizeFrame())
     }
-    frame += 1
-    frame %= 32767
+    GayG.frame += 1
+    GayG.frame %= 32767
   }
 
   def switchState(to: GayState): Unit = {

@@ -8,14 +8,14 @@ open class GayTypedObjectContainer[T <: GayObject] extends GayTypedObjectGroup[T
 
 
   override def collectForRender(): Unit =
-    val oldDefaults = Game.instance.gamemanager.cameras.defaultCam
+    val oldDefaults = GayG.cameras.defaultCam
     _layer.foreach { it =>
-      Game.instance.gamemanager.cameras.defaultCam = it
+      GayG.cameras.defaultCam = it
     }
     
     super.collectForRender()
     
-    Game.instance.gamemanager.cameras.defaultCam = oldDefaults
+    GayG.cameras.defaultCam = oldDefaults
   
   
 }

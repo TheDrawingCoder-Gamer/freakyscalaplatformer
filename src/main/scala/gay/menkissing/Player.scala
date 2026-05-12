@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL13.*
 import org.lwjgl.opengl.GL15.*
 import org.lwjgl.opengl.GL20.*
 import org.lwjgl.opengl.GL30.*
+import gay.menkissing.engine.GayG
 
 object Player {
     enum State {
@@ -73,7 +74,7 @@ class Player(val input: Input) extends GaySprite(GayAtlas(Player.playerAtlas, "1
 
                 spr = lastDir * 4
                 if (input.inputX != 0 || input.inputY != 0) {
-                    spr = lastDir * 4 + (Game.instance.gamemanager.currentState.frame / 11) % 4
+                    spr = lastDir * 4 + (GayG.currentState.frame / 11) % 4
                 }
 
 
@@ -89,7 +90,7 @@ class Player(val input: Input) extends GaySprite(GayAtlas(Player.playerAtlas, "1
             zIndex = y
         }
 
-        Game.instance.gamemanager.currentState.foreach {
+        GayG.currentState.foreach {
             case obj: GayObject =>
                 if (obj.canTouch(this) && obj.worldHitbox.overlaps(this.sniffZone)) {
                     obj.touch(this)

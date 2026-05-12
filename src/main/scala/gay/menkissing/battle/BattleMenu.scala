@@ -139,14 +139,6 @@ object BattleMenu {
 
   }
 
-  
-  final class RoundedRectangle(var radius: Int,
-                               override var graphicalWidth: Int,
-                               override var graphicalHeight: Int) extends GayObject {
-    override def render(): Unit = {
-      Game.instance.gamemanager.cameras.camList.withFilter(this.viewableOnCamera)
-    }
-  }
 
   final class SkillCostPreview extends GayObjectContainer {
 

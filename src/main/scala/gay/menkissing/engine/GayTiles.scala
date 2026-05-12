@@ -2,7 +2,7 @@ package gay.menkissing.engine
 
 import gay.menkissing.common.math as gaymath
 import gay.menkissing.common.math.Rect
-import gay.menkissing.{TileMap, draw}
+import gay.menkissing.TileMap
 import gay.menkissing.engine.graphics.MatrixStack
 import gay.menkissing.engine.graphics.Texture
 import gay.menkissing.engine.graphics.Mesh2D

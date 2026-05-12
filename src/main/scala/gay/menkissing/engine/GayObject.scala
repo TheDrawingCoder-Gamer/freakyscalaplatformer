@@ -73,7 +73,7 @@ open class GayObject extends GayBasic {
     def checkSolid(ox: Int, oy: Int): Boolean = {
         val hitbox = worldHitbox.offset(ox, oy)
 
-        Game.instance.gamemanager.currentState.exists {
+        GayG.currentState.exists {
             case it: GayObject =>
                 it.solid && it != this && !it.destroyed && it.testOverlaps(hitbox)
             case _ => false

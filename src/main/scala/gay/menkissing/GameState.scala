@@ -36,9 +36,9 @@ class GameState() extends GayState() {
 
 
     add(testObject2)
-    testObject2.setLayer(manager.fullCam)
+    testObject2.setLayer(GayG.initialCamera)
     add(testObject)
-    testObject.setLayer(manager.fullCam)
+    testObject.setLayer(GayG.initialCamera)
 
     world.levels(world.start.level).addEntities(this)
 

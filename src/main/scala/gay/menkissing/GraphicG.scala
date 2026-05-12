@@ -1,4 +1,4 @@
-package gay.menkissing.engine.graphics
+package gay.menkissing
 
 object GraphicG {
   val renderWidth = 320
