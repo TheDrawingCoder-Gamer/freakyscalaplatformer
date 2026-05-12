@@ -62,6 +62,10 @@ open class GayTypedObjectGroup[T <: GayObject] extends GayObject {
     preAdd(sprite)
     group.add(sprite)
 
+  def insert(sprite: T, idx: Int): sprite.type =
+    preAdd(sprite)
+    group.insert(sprite, idx)
+
   def setPosition(ix: Int, iy: Int): Unit =
     val dx = ix - x
     val dy = iy - y

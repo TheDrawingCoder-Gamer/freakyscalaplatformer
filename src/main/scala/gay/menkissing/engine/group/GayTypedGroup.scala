@@ -14,6 +14,11 @@ class GayTypedGroup[T <: GayBasic] extends GayBasic {
     members.append(basic)
     onMemberAdded(basic)
     basic
+
+  def insert(basic: T, at: Int): basic.type =
+    members.insert(at, basic)
+    onMemberAdded(basic)
+    basic
   
   def remove(basic: T): basic.type =
     members.filterInPlace(_ != basic)

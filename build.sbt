@@ -54,6 +54,10 @@ lazy val root = project
     libraryDependencies += "org.joml" % "joml" % "1.10.8",
     libraryDependencies += "com.lihaoyi" %% "upickle" % "4.4.3",
     libraryDependencies ++= Seq(
+      "dev.optics" %% "monocle-core",
+      "dev.optics" %% "monocle-macro"
+    ).map(_ % "3.3.0"),
+    libraryDependencies ++= Seq(
       "lwjgl",
       "lwjgl-assimp",
       "lwjgl-glfw",

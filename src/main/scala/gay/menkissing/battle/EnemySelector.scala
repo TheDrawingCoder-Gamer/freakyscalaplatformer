@@ -5,7 +5,7 @@ import engine.group.*
 import engine.*
 
 class EnemySelector extends GayObjectContainer {
-  val bar = new PercentBar(128, 20, 2)
+  val bar = new DamageBar(128, 20, 2)
   
   add(bar)
 

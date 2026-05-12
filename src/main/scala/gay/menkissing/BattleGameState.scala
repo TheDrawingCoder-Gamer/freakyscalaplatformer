@@ -19,6 +19,8 @@ import gay.menkissing.battle.Fighter
 import gay.menkissing.battle.SkillTarget
 import gay.menkissing.battle.EnemySelector
 import gay.menkissing.common.math.PointF
+import gay.menkissing.engine.anim.GayTween
+import gay.menkissing.engine.anim.TweenAccessor
 
 enum MenuFocus {
   case Root
@@ -78,6 +80,7 @@ class BattleGameState() extends GayState():
   enemy.setLayer(manager.fullCam)
   enemy.x = 100
   enemy.y = 100
+  
 
   var selectionQueued: Skill = null
   val enemies = mutable.ArrayBuffer(enemy)
@@ -107,6 +110,8 @@ class BattleGameState() extends GayState():
     add(portrait)
     
     startPlayerTurn(portrait)
+
+    // MUST be in here otherwise it gets reset
     // backgroundSource.play()
 
 

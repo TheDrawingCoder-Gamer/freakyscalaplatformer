@@ -6,10 +6,10 @@ import gay.menkissing.engine.GayRectSprite
 import engine.graphics.Color
 
 class PercentBar(fullWidth: Int, fullHeight: Int, inPadding: Int) extends GayObjectContainer {
-  private var _percentage: Double = 1
-  private var _padding: Int = inPadding
-  private var _fullHeight: Int = fullHeight
-  private var _fullWidth: Int = fullWidth
+  protected var _percentage: Double = 1
+  protected var _padding: Int = inPadding
+  protected var _fullHeight: Int = fullHeight
+  protected var _fullWidth: Int = fullWidth
 
 
 
@@ -47,6 +47,6 @@ class PercentBar(fullWidth: Int, fullHeight: Int, inPadding: Int) extends GayObj
     healthRect.x = this.x + _padding
     healthRect.y = this.y + _padding
 
-  private def updatePercentage(): Unit =
+  protected def updatePercentage(): Unit =
     healthRect.graphicalWidth = ((_fullWidth - _padding * 2) * _percentage).toInt
 }

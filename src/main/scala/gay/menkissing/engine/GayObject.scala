@@ -137,7 +137,10 @@ open class GayObject extends GayBasic {
     }
 
     def die(): Unit = ()
-    
+
+    override def collectForRender(): Unit = 
+      if (this.exists && this.visible)
+        this.layer.submitForRender(this)
 
     def viewableOnCamera(cam: GayView): Boolean =
         exists && visible && cam == this.layer

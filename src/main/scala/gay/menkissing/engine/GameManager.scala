@@ -74,6 +74,7 @@ class GameManager() {
   def run(): Unit = {
     if (currentState != null) {
       GayG.input.update()
+      GayG.plugins.update()
       currentState.update()
       cameras.camList.foreach(_.startFrame())
       currentState.collectForRender()
@@ -84,6 +85,7 @@ class GameManager() {
   }
 
   def switchState(to: GayState): Unit = {
+    GayG.signals.preStateSwitch.dispatch()
     if (currentState != null) {
       currentState.destroy()
     }
@@ -91,6 +93,7 @@ class GameManager() {
     stateStack.clear()
     currentState = to
     to.start()
+    GayG.signals.postStateSwitch.dispatch()
   }
   /**
     * Suspend the current state, and switch to a new state.
@@ -98,21 +101,25 @@ class GameManager() {
     * @param to
     */
   def pushState(to: GayState): Unit = {
+    GayG.signals.preStateSwitch.dispatch()
     if (currentState != null) {
       stateStack.push(currentState)
     }
     currentState = to
     to.start()
+    GayG.signals.postStateSwitch.dispatch()
   }
 
   /**
     * Exit the substate, and switch back to the parent.
     */
   def popState(): Unit = {
+    GayG.signals.preStateSwitch.dispatch()
     if (currentState != null) {
       currentState.destroy()
     }
     currentState = stateStack.pop()
+    GayG.signals.postStateSwitch.dispatch()
   }
 
   /**
@@ -121,11 +128,13 @@ class GameManager() {
     * @param to
     */
   def swapSubstate(to: GayState): Unit = {
+    GayG.signals.preStateSwitch.dispatch()
     if (currentState != null) {
       currentState.destroy()
     }
     currentState = to
     currentState.start()
+    GayG.signals.postStateSwitch.dispatch()
   }
 
 }

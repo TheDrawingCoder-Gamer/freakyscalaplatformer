@@ -5,6 +5,8 @@ import gay.menkissing.engine.GaySprite
 import engine.group.*
 import gay.menkissing.engine.GayTexture
 import gay.menkissing.engine.graphics.Texture
+import gay.menkissing.engine.anim.GayTween
+import gay.menkissing.engine.anim.TweenAccessor
 
 class Enemy(val fighter: Fighter, texture: Texture) extends GayObjectContainer {
   val spr = GaySprite(GayTexture(texture))
@@ -19,5 +21,10 @@ class Enemy(val fighter: Fighter, texture: Texture) extends GayObjectContainer {
     val ratio = hp.toDouble / fighter.maxHP
 
     selector.bar.percentage = ratio
+
+    GayTween.tween(selector.bar, new TweenAccessor[DamageBar, Double] {
+      def get(o: DamageBar): Double = o.damage
+      def update(o: DamageBar, f: Double): Unit = o.damage = f
+    }, ratio, 30, start = true)
   }
 }
