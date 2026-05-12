@@ -1,7 +1,6 @@
 package gay.menkissing.engine
 
 import gay.menkissing.common.math as gaymath
-import gay.menkissing.draw
 import org.joml.Matrix4f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.*
@@ -19,6 +18,9 @@ import gay.menkissing.engine.graphics.Color
 import scala.collection.mutable
 import java.io.Closeable
 import gay.menkissing.engine.graphics.Shader
+import gay.menkissing.engine.graphics.Mesh2D
+import gay.menkissing.engine.graphics.MatrixStack
+import gay.menkissing.engine.graphics.GraphicG
 
 
 trait GayView extends Closeable {
@@ -26,15 +28,15 @@ trait GayView extends Closeable {
   def height: Int
 
     // Doing it like this so I may have a chance at removing the above framebuffer
-  protected var _renderRect = gaymath.Rect(0, 0, draw.fullRenderWidth, draw.fullRenderHeight)
+  protected var _renderRect = gaymath.Rect(0, 0, GraphicG.fullRenderWidth, GraphicG.fullRenderHeight)
   protected var _renderTransform = new Matrix4f()
 
   def renderRect: gaymath.Rect = _renderRect
   def renderRect_=(v: gaymath.Rect): Unit =
     _renderRect = v
     _renderTransform.identity()
-    _renderTransform.translate(v.x.toFloat / draw.fullRenderWidth, v.y.toFloat / draw.fullRenderHeight, 0f)
-    _renderTransform.scaleXY(v.w.toFloat / draw.fullRenderWidth, v.h.toFloat / draw.fullRenderHeight)
+    _renderTransform.translate(v.x.toFloat / GraphicG.fullRenderWidth, v.y.toFloat / GraphicG.fullRenderHeight, 0f)
+    _renderTransform.scaleXY(v.w.toFloat / GraphicG.fullRenderWidth, v.h.toFloat / GraphicG.fullRenderHeight)
 
 
   var viewPos: gaymath.Point = gaymath.Point(0, 0)
@@ -46,8 +48,8 @@ trait GayView extends Closeable {
 
   val toRender = mutable.Buffer.empty[GayBasic]
 
-  def makeStack(): draw.MatrixStack = {
-    val stack = draw.MatrixStack()
+  def makeStack(): MatrixStack = {
+    val stack = MatrixStack()
     stack.mul(_renderTransform)
     stack.ortho(0, worldSize.x, worldSize.y, 0, Short.MinValue.toFloat, Short.MaxValue.toFloat)
     stack
@@ -127,7 +129,7 @@ class PixelPerfectGayView(val width: Int, val height: Int) extends GayView {
     super.finalizeFrame()
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     Shader.cutoutProgram.use()
-    draw.screenVertices.bind()
+    Mesh2D.screenMesh.bind()
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, framebufferTex)
     glViewport(Game.paddingLeft, Game.paddingTop, Game.windowWidth, Game.windowHeight)
@@ -139,7 +141,7 @@ class PixelPerfectGayView(val width: Int, val height: Int) extends GayView {
     Shader.cutoutProgram.bindTransform(mat, mat)
     
 
-    draw.screenVertices.unsafeDraw()
+    Mesh2D.screenMesh.unsafeDraw()
   }
 }
 

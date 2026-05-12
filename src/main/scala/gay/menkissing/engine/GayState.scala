@@ -16,7 +16,6 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 import scala.collection.mutable
 import scala.util.Using
-import gay.menkissing.draw
 import gay.menkissing.engine.group.{GayContainer, GayTypedContainer}
 
 abstract class GayState() extends GayTypedContainer[GayBasic] {

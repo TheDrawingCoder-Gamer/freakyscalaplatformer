@@ -20,6 +20,7 @@ import scala.util.Using
 import gay.menkissing.draw
 import gay.menkissing.engine.graphics.Color
 import gay.menkissing.engine.graphics.Texture
+import gay.menkissing.engine.graphics.TextureAtlas
 
 
 
@@ -38,7 +39,7 @@ final case class GayTexture(tex: Texture) extends GayGraphic {
     }
 }
 
-final class GayAtlas(val atlas: draw.TextureAtlas, var current: String) extends GayGraphic {
+final class GayAtlas(val atlas: TextureAtlas, var current: String) extends GayGraphic {
     def width = atlas(current).w
     def height = atlas(current).h
     def render(matrices: Matrix4f): Unit = {

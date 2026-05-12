@@ -135,4 +135,60 @@ object Mesh2D {
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * 4, 0)
     }
+
+  val squareMesh = Using.resource(stackPush()) { stack =>
+    val verts = stack.floats(
+      0f,0f, 0.0f, 0.0f,
+      1f,0f, 1.0f, 0.0f,
+      0f,1f, 0.0f, 1.0f,
+      1f,1f, 1.0f, 1.0f,
+    )
+    DirectMesh2D.textured(verts, PrimitiveType.TriangleStrip)
+  }
+  val squareOutlineMesh = Using.resource(stackPush()) { stack =>
+    val verts = stack.floats(
+        1f, 1f,
+        1f, 0f,
+        0f, 0f,
+        0f, 1f
+      )
+    DirectMesh2D.simple(verts, PrimitiveType.LineLoop)
+  }
+
+  val screenMesh = Using.resource(stackPush()) { stack =>
+    val verts = stack.floats(
+      -1f,-1f, 0.0f, 0.0f,
+      1f,-1f, 1.0f, 0.0f,
+      -1f,1f, 0.0f, 1.0f,
+      1f,1f, 1.0f, 1.0f,
+    )
+    DirectMesh2D.textured(verts, PrimitiveType.TriangleStrip)
+  }
+
+  val tau: Double = math.Pi * 2
+
+  def setCircleVerts(vertBuf: FloatBuffer, startIdx: Int, numSegments: Int = 20): Unit = {
+    for (i <- 0 to numSegments) {
+      val theta = i.toDouble * tau / numSegments 
+      vertBuf.put(startIdx * 2 + i * 2, math.cos(theta).toFloat)
+      vertBuf.put(startIdx * 2 + i * 2 + 1, math.sin(theta).toFloat)
+    }
+  }
+
+  val circleOutlineMesh = Using.resource(stackPush()) { stack =>
+    val verts = stack.callocFloat(21 * 2)
+    val indices = stack.callocInt(21)
+    setCircleVerts(verts, 0)
+    DirectMesh2D.simple(verts, PrimitiveType.LineLoop)
+  }
+
+  val circleMesh = Using.resource(stackPush()) { stack =>
+    val verts = stack.callocFloat(22 * 2)
+    val indices = stack.callocInt(22)
+    verts.put(0, 0.0f)
+    verts.put(1, 0.0f)
+    indices.put(0, 0)
+    setCircleVerts(verts, 1)
+    DirectMesh2D.simple(verts, PrimitiveType.TriangleFan)
+  }
 }

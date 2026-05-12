@@ -15,7 +15,9 @@ sealed trait GayMaterial {
 object GayMaterial {
   final case class FlatColor(color: Color) extends GayMaterial {
     def bind(transform: Matrix4f): Unit =
-      draw.setSolidColor(color, transform)
+      Shader.solidColorProgram.use()
+      Shader.solidColorProgram.transformLoc.bind(transform)
+      Shader.solidColorProgram.colorLoc.bind(color)
   }
   final class Tex2D(val texture: Texture, var uv: gaymath.Rect) extends GayMaterial {
     def bind(transform: Matrix4f): Unit =

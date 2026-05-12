@@ -1,7 +1,7 @@
 package gay.menkissing.engine
 package group
 
-import gay.menkissing.draw.MatrixStack
+import gay.menkissing.engine.graphics.MatrixStack
 
 import collection.mutable
 

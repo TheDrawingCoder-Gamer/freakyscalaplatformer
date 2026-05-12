@@ -7,11 +7,12 @@ import gay.menkissing.engine.GayTexture
 import gay.menkissing.engine.graphics.Texture
 import gay.menkissing.engine.anim.GayTween
 import gay.menkissing.engine.anim.TweenAccessor
+import gay.menkissing.engine.graphics.GraphicG
 
 class Enemy(val fighter: Fighter, texture: Texture) extends GayObjectContainer {
   val spr = GaySprite(GayTexture(texture))
-  spr.scaleX = draw.scaleRatio
-  spr.scaleY = draw.scaleRatio
+  spr.scaleX = GraphicG.scaleRatio
+  spr.scaleY = GraphicG.scaleRatio
   add(spr)
   val selector = new EnemySelector()
   add(selector)

@@ -21,6 +21,7 @@ import gay.menkissing.battle.EnemySelector
 import gay.menkissing.common.math.PointF
 import gay.menkissing.engine.anim.GayTween
 import gay.menkissing.engine.anim.TweenAccessor
+import gay.menkissing.engine.graphics.GraphicG
 
 enum MenuFocus {
   case Root
@@ -61,7 +62,7 @@ class BattleGameState() extends GayState():
 
   val portrait = BattlePortrait(mcFighter, Textures.preload.lucaPortrait)
   portrait.setLayer(manager.fullCam)
-  portrait.y = draw.fullRenderHeight - portrait.graphicalHeight
+  portrait.y = manager.fullCam.worldSize.y - portrait.graphicalHeight
 
   val enemyFighter =
     BasicFighter(

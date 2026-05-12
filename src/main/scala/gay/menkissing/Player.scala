@@ -20,7 +20,7 @@ object Player {
     val walkSpeed = 1.5f
 
 
-    val playerAtlas = draw.TextureAtlas.splitBySize(Textures.preload.playerSheet, 16, 16)
+    val playerAtlas = engine.graphics.TextureAtlas.splitBySize(Textures.preload.playerSheet, 16, 16)
 
 }
 

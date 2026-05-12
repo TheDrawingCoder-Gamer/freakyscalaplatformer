@@ -3,8 +3,9 @@ package gay.menkissing.engine
 import gay.menkissing.common.math as gaymath
 import gay.menkissing.common.math.Rect
 import gay.menkissing.{TileMap, draw}
-import gay.menkissing.draw.MatrixStack
+import gay.menkissing.engine.graphics.MatrixStack
 import gay.menkissing.engine.graphics.Texture
+import gay.menkissing.engine.graphics.Mesh2D
 
 class GayTiles(val tileMapTex: Texture, val tileSize: Int, val tileMap: TileMap) extends GayObject {
   val tileMapWidth: Int = tileMapTex.width / tileSize
@@ -19,7 +20,7 @@ class GayTiles(val tileMapTex: Texture, val tileSize: Int, val tileMap: TileMap)
     val cam = GayG.currentCamera
     val matrices = cam.makeStack()
     tileMapTex.bind()
-    draw.squareVertices.bind()
+    Mesh2D.squareMesh.bind()
 
     // ??? TODO: how to avoid rendering everything
     for {
@@ -40,7 +41,7 @@ class GayTiles(val tileMapTex: Texture, val tileSize: Int, val tileMap: TileMap)
           }
           matrices.scaleXY(tileSize, tileSize)
           tileMapTex.renderMode.program.bindTransform(matrices, tileMapTex.texTransform((t % tileMapWidth) * tileSize, math.floorDiv(t, tileMapWidth) * tileSize, tileSize, tileSize))
-          draw.squareVertices.unsafeDraw()
+          Mesh2D.squareMesh.unsafeDraw()
           
         }
       }

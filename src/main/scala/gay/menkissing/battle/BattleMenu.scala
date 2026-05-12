@@ -3,7 +3,7 @@ package gay.menkissing.battle
 import gay.menkissing.Textures
 import gay.menkissing.battle.BattleMenu.{BattleOption, SkillBattleOption}
 import gay.menkissing.engine.*
-import gay.menkissing.draw.{TextureAtlas}
+import gay.menkissing.engine.graphics.TextureAtlas
 import gay.menkissing.engine.graphics.Color
 import gay.menkissing.engine.group.{GayObjectContainer, GayTypedObjectContainer}
 

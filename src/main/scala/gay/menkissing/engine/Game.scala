@@ -14,10 +14,10 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.util.Using
-import gay.menkissing.draw
+import gay.menkissing.engine.graphics.GraphicG
 
-inline def renderWidth: Int = draw.renderWidth
-inline def renderHeight: Int = draw.renderHeight
+inline def renderWidth: Int = GraphicG.renderWidth
+inline def renderHeight: Int = GraphicG.renderHeight
 class Game {
   GLFWErrorCallback.createPrint(System.err).set()
 
@@ -113,7 +113,7 @@ object Game {
   var paddingLeft: Int = 0
   var paddingTop: Int = 0
 
-  val aspectRatio: Double = draw.renderWidth.toDouble / draw.renderHeight.toDouble
+  val aspectRatio: Double = GraphicG.renderWidth.toDouble / GraphicG.renderHeight.toDouble
 
   val resizeWindow: GLFWFramebufferSizeCallback = new GLFWFramebufferSizeCallback():
     override def invoke(window: Long, width: Int, height: Int): Unit =

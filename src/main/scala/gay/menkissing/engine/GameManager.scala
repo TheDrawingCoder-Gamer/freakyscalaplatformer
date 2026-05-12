@@ -1,6 +1,5 @@
 package gay.menkissing.engine
 
-import gay.menkissing.draw
 import gay.menkissing.engine.{GayState, GayView}
 import org.joml.Matrix4f
 import org.lwjgl.glfw.GLFW.*
@@ -15,6 +14,7 @@ import org.lwjgl.system.MemoryStack.*
 import org.lwjgl.system.MemoryUtil.*
 
 import scala.collection.mutable
+import gay.menkissing.engine.graphics.GraphicG
 
 /**
  * Manages the entire game. SUPPOSED to be agnostic of the current game state
@@ -55,11 +55,11 @@ class GameManager() {
     }
   }
 
-  val pixelCam = PixelPerfectGayView(draw.renderWidth, draw.renderHeight)
+  val pixelCam = PixelPerfectGayView(GraphicG.renderWidth, GraphicG.renderHeight)
   // Our pixel game shouldn't be using any blended textures.
   pixelCam.useDepth = true
   cameras.defaultCam = pixelCam
-  val fullCam = DirectGayView(draw.fullRenderWidth, draw.fullRenderHeight)
+  val fullCam = DirectGayView(GraphicG.fullRenderWidth, GraphicG.fullRenderHeight)
   // Our UI camera on the other hand, _will_ be using translucency.
   fullCam.useDepth = false
 

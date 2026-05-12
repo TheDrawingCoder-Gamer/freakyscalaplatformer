@@ -73,7 +73,7 @@ class Texture(buf: ByteBuffer, interpMin: Int, interpMag: Int, val renderMode: T
   def drawUnsafe(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit =
     val transTexMtx = texTransform(sx, sy, sw, sh)
     renderMode.program.bindTransform(matrices, transTexMtx)
-    squareVertices.draw()
+    Mesh2D.squareMesh.draw()
 
   def draw(matrices: Matrix4f, sx: Int, sy: Int, sw: Int, sh: Int): Unit = {
     bind()
