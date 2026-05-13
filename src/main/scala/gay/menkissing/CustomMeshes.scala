@@ -18,7 +18,7 @@ object CustomMeshes {
       DirectMesh2D.textured(verts, PrimitiveType.Triangles)
     }
   val messageBubbleMesh =
-    Mesh2D.importObj(getClass.getResourceAsStream("/messagebubble.obj"))
+    Mesh2D.loadGayM(getClass.getResourceAsStream("/messagebubble.gaym"))
   val weirdRectangleMesh =
-    Mesh2D.importObj(getClass.getResourceAsStream("/weirdrectangle.obj"))
+    Mesh2D.loadGayM(getClass.getResourceAsStream("/weirdrectangle.gaym"))
 }

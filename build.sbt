@@ -1,3 +1,7 @@
+import java.nio.file.Files
+import scala.collection.JavaConverters._
+import sbt.io.ExtensionFilter
+
 val scala3Version = "3.8.3"
 
 val lwjglVersion = "3.3.4"
@@ -31,6 +35,8 @@ val lwjglNatives = {
     ""
   }
 }
+
+val rootDir = file(".")
 
 lazy val root = project
   .in(file("."))
@@ -73,5 +79,23 @@ lazy val root = project
     Compile / run / fork := true,
     Compile / run / envVars := Map("__GL_THREADED_OPTIMIZATIONS" -> "0", "XDG_SESSION_TYPE" -> "x11"),
     assembly / mainClass := Some("gay.menkissing.main"),
-    assemblyMergeStrategy := { _ => MergeStrategy.preferProject }
+    assemblyMergeStrategy := { _ => MergeStrategy.preferProject },
+    Compile / compileObjs := { compileObjsImpl((Compile / resourceManaged).value) },
+    Compile / resourceGenerators += (Compile / compileObjs)
   )
+
+val compileObjs = TaskKey[Seq[File]]("compileObjs")
+
+def compileObjsImpl(targetDir: File): Seq[File] = {
+  val sourceDir = new File(rootDir, "assets")
+  if (!Files.exists(targetDir.toPath)) {
+    IO.createDirectory(targetDir)
+  }
+  Path.selectSubpaths(sourceDir, new ExtensionFilter("obj")).unzip._1.map { f =>
+    val base = f.base
+    val target = Path.rebase(sourceDir, targetDir)(new File(f.getParentFile, base + ".gaym")).get
+    IO.createDirectory(target.getParentFile())
+    ObjCompiler.compileObj(f, target)
+    target
+  }.toSeq
+}
