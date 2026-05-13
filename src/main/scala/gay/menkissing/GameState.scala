@@ -1,6 +1,7 @@
 package gay.menkissing
 
 import gay.menkissing.engine.*
+import gay.menkissing.engine.graphics.Color
 
 class GameState() extends GayState() {
   Textures
@@ -16,6 +17,11 @@ class GameState() extends GayState() {
       |""".stripMargin, 30, engine.graphics.Color(1f, 1f, 1f, 1f))
   testObject.y = 50
   val testObject2 = GaySprite(GayTexture(Textures.preload.haxe))
+  val testObject3 = GayMesh2D(CustomMeshes.weirdRectangleMesh, 1100, 225)
+  testObject3.setLayer(GayG.initialCamera)
+  testObject3.y = GayG.initialCamera.worldSize.y - 230
+  testObject3.x += 240
+  testObject3.setColor(Color.fromHex(0xFF2c0044))
 
   val bgTiles = FloorTiles(Textures.preload.tiles, 8, world.tiles.bg)
   val fgTiles = GayTiles(Textures.preload.tiles, 8, world.tiles.fg)
@@ -39,6 +45,8 @@ class GameState() extends GayState() {
     testObject2.setLayer(GayG.initialCamera)
     add(testObject)
     testObject.setLayer(GayG.initialCamera)
+    add(testObject3)
+    testObject3.setLayer(GayG.initialCamera)
 
     world.levels(world.start.level).addEntities(this)
 

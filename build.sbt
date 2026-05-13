@@ -57,6 +57,7 @@ lazy val root = project
       "dev.optics" %% "monocle-core",
       "dev.optics" %% "monocle-macro"
     ).map(_ % "3.3.0"),
+    libraryDependencies += "org.slf4j" % "slf4j-reload4j" % "2.0.18",
     libraryDependencies ++= Seq(
       "lwjgl",
       "lwjgl-assimp",

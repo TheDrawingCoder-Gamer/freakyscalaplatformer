@@ -11,5 +11,5 @@ lazy val pixelCam = new PixelPerfectGayView(GraphicG.renderWidth, GraphicG.rende
   val game = new Game(GraphicG.fullRenderWidth, GraphicG.fullRenderHeight)
   GayG.cameras.insert(pixelCam, 0, replaceAsDefault = true)
   GayG.switchState(new GameState())
-  GayG.pushState(new BattleGameState())
+  //GayG.pushState(new BattleGameState())
   game.run()

@@ -5,6 +5,7 @@ import org.lwjgl.system.MemoryUtil.*
 import scala.util.Using
 import engine.graphics.PrimitiveType
 import engine.graphics.DirectMesh2D
+import gay.menkissing.engine.graphics.Mesh2D
 
 object CustomMeshes {
   val triangleMesh =
@@ -16,4 +17,8 @@ object CustomMeshes {
       )
       DirectMesh2D.textured(verts, PrimitiveType.Triangles)
     }
+  val messageBubbleMesh =
+    Mesh2D.importObj(getClass.getResourceAsStream("/messagebubble.obj"))
+  val weirdRectangleMesh =
+    Mesh2D.importObj(getClass.getResourceAsStream("/weirdrectangle.obj"))
 }
